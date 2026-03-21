@@ -31,11 +31,13 @@ jobs:
         node-version: '22.x'
         cache: 'npm'
 
+    - name: Install base dependencies
+      run: npm ci
+
     - name: Set up Environment for Angular v${{ matrix.angular-version }}
+      if: matrix.angular-version != 21
       run: |
-        npm install -g @angular/cli@^${{ matrix.angular-version }}.0.0
-        # Use --legacy-peer-deps to handle conflicts when forcing specific versions
-        npm install \
+        npm install --no-save \
           @angular/core@^${{ matrix.angular-version }}.0.0 \
           @angular/common@^${{ matrix.angular-version }}.0.0 \
           @angular/compiler@^${{ matrix.angular-version }}.0.0 \
