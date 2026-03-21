@@ -1,6 +1,23 @@
 {
   "name": "ngx-diff-highlight",
   "version": "0.0.1",
+  "description": "Angular library for canonical field-path highlighting with scoped state management and automatic Reactive Forms resolution.",
+  "keywords": [
+    "angular",
+    "ngx",
+    "diff",
+    "highlight",
+    "reactive-forms",
+    "form-array",
+    "path-resolution"
+  ],
+  "homepage": "https://github.com/phoenixchinar/ngx-diff-highlight",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phoenixchinar/ngx-diff-highlight.git"
+  },
+  "author": "Imran",
+  "license": "MIT",
   "peerDependencies": {
     "@angular/common": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0",
     "@angular/core": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0",
