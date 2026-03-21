@@ -13,6 +13,15 @@ Angular library for resolving canonical diff field paths, scoping those paths to
 - **Seamless integration:** Built-in support for Angular Reactive Forms.
 - **Compatibility:** Aliases for legacy `appHighlightField*` selectors.
 
+## Compatibility
+
+`ngx-diff-highlight` is compatible with Angular **v18.0.0** and above. It uses standard Angular standalone APIs and the `inject()` function.
+
+### External Dependencies
+
+- **RxJS**: `^7.8.0` (Standard Angular dependency)
+- **tslib**: `^2.3.0` (Standard TypeScript runtime)
+
 ## Installation
 
 ```bash
