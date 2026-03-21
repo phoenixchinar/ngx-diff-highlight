@@ -4,7 +4,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "paths": {
-      "diff-highlight": ["./dist/diff-highlight"]
+      "diff-highlight": ["./projects/diff-highlight/src/public-api.ts"]
     },
     "strict": true,
     "noImplicitOverride": true,

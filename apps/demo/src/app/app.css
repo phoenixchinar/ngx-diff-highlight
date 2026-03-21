@@ -1,0 +1,105 @@
+:host {
+  display: block;
+  font-family: sans-serif;
+  color: #333;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+h1 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 2rem;
+}
+
+.scenario {
+  margin-bottom: 3rem;
+  padding: 1.5rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.scenario h2 {
+  margin-top: 0;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 0.5rem;
+}
+
+.controls {
+  margin-bottom: 1rem;
+}
+
+.controls input {
+  padding: 0.5rem;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.controls button {
+  margin-right: 0.5rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.controls button:hover {
+  background-color: #2980b9;
+}
+
+.card {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.card h3 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.card div {
+  margin-bottom: 0.5rem;
+  padding: 0.25rem;
+}
+
+/* Library Styling Hooks */
+.highlight-diff {
+  background-color: #fff9c4; /* Soft yellow */
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 0 0 2px #fff9c4;
+}
+
+.draggable-field {
+  cursor: grab;
+}
+
+.draggable-field:active {
+  cursor: grabbing;
+}
+
+.multi-scope-container {
+  display: flex;
+  gap: 2rem;
+}
+
+.scope-box {
+  flex: 1;
+}
+
+.multi-scope-container .card {
+  min-height: 100px;
+}

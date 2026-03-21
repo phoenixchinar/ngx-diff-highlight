@@ -1,12 +1,71 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
+import { DiffHighlightModule } from 'diff-highlight';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterOutlet, DiffHighlightModule],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
-  protected readonly title = signal('demo');
+  // Scenario 1: Basic Detail View
+  basicFieldsInput = signal('name, address.city');
+  basicFields = computed(() => this.basicFieldsInput().split(',').map(s => s.trim()).filter(s => !!s));
+  
+  // Scenario 2: Reactive Form
+  form: FormGroup;
+  formFieldsInput = signal('user.firstName, user.lastName, roles.0, roles.1');
+  formFields = computed(() => this.formFieldsInput().split(',').map(s => s.trim()).filter(s => !!s));
+
+  // Scenario 3: Multiple Scopes
+  scope1Fields = signal(['title', 'description']);
+  scope2Fields = signal(['title', 'status']);
+
+  constructor(private fb: FormBuilder) {
+    this.form = this.fb.group({
+      user: this.fb.group({
+        firstName: ['John'],
+        lastName: ['Doe']
+      }),
+      roles: this.fb.array([
+        this.fb.control('Admin'),
+        this.fb.control('User'),
+        this.fb.control('Editor')
+      ])
+    });
+  }
+
+  get roles() {
+    return this.form.get('roles') as FormArray;
+  }
+
+  updateBasicFields(val: string) {
+    this.basicFieldsInput.set(val);
+  }
+
+  updateFormFields(val: string) {
+    this.formFieldsInput.set(val);
+  }
+
+  toggleScope1Field(field: string) {
+    const current = this.scope1Fields();
+    if (current.includes(field)) {
+      this.scope1Fields.set(current.filter(f => f !== field));
+    } else {
+      this.scope1Fields.set([...current, field]);
+    }
+  }
+
+  toggleScope2Field(field: string) {
+    const current = this.scope2Fields();
+    if (current.includes(field)) {
+      this.scope2Fields.set(current.filter(f => f !== field));
+    } else {
+      this.scope2Fields.set([...current, field]);
+    }
+  }
 }

@@ -97,8 +97,8 @@ export class DiffHighlightArrayDirective extends DiffHighlightPathDirective {
   standalone: true,
 })
 export class DiffHighlightNameDirective extends DiffHighlightPathDirective {
-  @Input('diffHighlightName') name: string | null = null;
-  @Input('appHighlightFieldName') set appName(val: string | null) {
+  @Input('diffHighlightName') name: string | number | null = null;
+  @Input('appHighlightFieldName') set appName(val: string | number | null) {
     this.name = val;
   }
 
