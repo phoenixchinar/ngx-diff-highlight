@@ -103,3 +103,88 @@ h1 {
 .multi-scope-container .card {
   min-height: 100px;
 }
+
+/* Scenario 4: Diff Representation */
+.diff-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+/* Base highlight applied by library */
+.field-row.highlight-diff {
+  border-color: #dee2e6;
+  background-color: #f8f9fa;
+}
+
+.field-row .label {
+  font-weight: 600;
+  width: 120px;
+}
+
+.field-row .value {
+  flex-grow: 1;
+}
+
+.diff-tag {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 10px;
+  display: none;
+}
+
+.field-row.highlight-diff .diff-tag {
+  display: inline-block;
+}
+
+/* Specific Diff Type Styles */
+.field-row.highlight-diff .value.changed {
+  color: #856404;
+}
+.field-row.highlight-diff .old-value {
+  text-decoration: line-through;
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+.diff-tag.changed {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.field-row.highlight-diff .value.added {
+  color: #155724;
+}
+.field-row.highlight-diff .new-tag {
+  font-style: italic;
+  font-weight: bold;
+}
+.diff-tag.added {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.field-row.highlight-diff .value.deleted {
+  color: #721c24;
+  text-decoration: line-through;
+}
+.diff-tag.deleted {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.diff-tag.unchanged {
+  display: inline-block;
+  background-color: #e9ecef;
+  color: #6c757d;
+}

@@ -26,6 +26,9 @@ export class App {
   scope1Fields = signal(['title', 'description']);
   scope2Fields = signal(['title', 'status']);
 
+  // Scenario 4: Visual Diff (Added, Changed, Deleted)
+  diffFields = signal(['user.firstName', 'user.lastName', 'user.bio']);
+
   constructor() {
     this.form = this.fb.group({
       user: this.fb.group({

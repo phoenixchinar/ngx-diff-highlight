@@ -66,6 +66,45 @@ export class AppComponent {}
 - [Styling](docs/styling.md)
 - [Testing](docs/testing.md)
 
+## Live Demo
+
+Check out the [Live Demo Showcase](https://phoenixchinar.github.io/ngx-diff-highlight/) to see the library in action.
+
+### Visual Diff Example
+
+You can use the library to represent different types of changes by applying custom styles to the highlighted elements.
+
+```html
+<diff-highlight-scope [fields]="['user.name', 'user.email', 'user.bio']">
+  <div class="profile-card">
+    <!-- Changed Field -->
+    <div [diffHighlightField]="'user.name'" class="field-row">
+      <span class="label">Name:</span>
+      <span class="value changed">John Doe <span class="old">(was Jane)</span></span>
+    </div>
+
+    <!-- Added Field -->
+    <div [diffHighlightField]="'user.email'" class="field-row">
+      <span class="label">Email:</span>
+      <span class="value added">john@example.com <span class="tag">New!</span></span>
+    </div>
+
+    <!-- Deleted Field (In a diff view, you might show what was removed) -->
+    <div [diffHighlightField]="'user.bio'" class="field-row">
+      <span class="label">Bio:</span>
+      <span class="value deleted">REMOVED</span>
+    </div>
+  </div>
+</diff-highlight-scope>
+```
+
+Corresponding CSS:
+```css
+.field-row.highlight-diff .value.changed { color: #856404; }
+.field-row.highlight-diff .value.added   { color: #155724; font-weight: bold; }
+.field-row.highlight-diff .value.deleted { color: #721c24; text-decoration: line-through; }
+```
+
 ## Development
 
 - `npm run build`: Build the library and demo app.
