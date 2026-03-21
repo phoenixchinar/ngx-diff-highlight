@@ -41,7 +41,7 @@
 
     <diff-highlight-scope [fields]="formFields()">
       <form [formGroup]="form" class="card">
-        <div diffHighlightGroup="user">
+        <div diffHighlightGroup="user" formGroupName="user">
           <h3>User Details</h3>
           <div [diffHighlightField]="'firstName'">
             <label>First Name: </label>
@@ -53,7 +53,7 @@
           </div>
         </div>
 
-        <div diffHighlightArray="roles">
+        <div diffHighlightArray="roles" [formArrayName]="'roles'">
           <h3>User Roles</h3>
           <div *ngFor="let role of roles.controls; let i = index">
             <div [diffHighlightName]="i">
