@@ -53,7 +53,10 @@ describe('App', () => {
 
     let compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Current library gap:');
+    expect(compiled.querySelector('[data-live-row="team"]')?.textContent).toContain('UNCHANGED');
     expect(compiled.querySelector('[data-live-row="roles[1]"]')).toBeTruthy();
+    expect(compiled.querySelector('[data-item-right="items[2].name"]')).toBeTruthy();
+    expect(compiled.querySelector('[data-item-right="items[0].id"]')?.textContent).toContain('UNCHANGED');
 
     app.newJson.set('{');
     fixture.detectChanges();

@@ -56,9 +56,9 @@
         <div diffHighlightArray="roles" [formArrayName]="'roles'">
           <h3>User Roles</h3>
           @for (role of roles.controls; track $index) {
-            <div [diffHighlightName]="$index">
+            <div [diffHighlightName]="$index" diffHighlightField [attr.data-role-path]="'roles[' + $index + ']'">
               <label [for]="'role-' + $index">Role {{ $index }}: </label>
-              <input [id]="'role-' + $index" [formControlName]="$index" diffHighlightField>
+              <input [id]="'role-' + $index" [formControlName]="$index">
             </div>
           }
         </div>
@@ -145,7 +145,7 @@
   <!-- Scenario 5: Real-time Diffing -->
   <section class="scenario">
     <h2>5. Real-time Object Diffing</h2>
-    <p>Edit the JSON below to see live diff paths. This section also calls out current behavior that belongs to the library, not the demo.</p>
+    <p>Edit the JSON below to see live diff paths, including an explicit unchanged field.</p>
 
     <div class="side-by-side">
       <div class="version">
@@ -171,7 +171,7 @@
             @for (row of liveRows(); track row.path) {
               <div class="field-row" [diffHighlightField]="row.path" [attr.data-live-row]="row.path">
                 <span class="label">{{ row.path }}</span>
-                <span class="value">{{ row.leftValue }} -> {{ row.rightValue }}</span>
+                <span class="value" [class.unchanged-value]="row.type === 'none'">{{ row.leftValue }} -> {{ row.rightValue }}</span>
                 <span class="diff-tag">{{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}</span>
               </div>
             }
@@ -182,6 +182,43 @@
           <strong>Current library gap:</strong> <code>computeDiff()</code> is path- and index-based. It does not detect semantic moves or renames inside arrays.
         </div>
       }
+    </div>
+  </section>
+
+  <section class="scenario">
+    <h2>6. Arrays of Complex Objects</h2>
+    <p>This shows how <code>computeDiff()</code> handles arrays of objects: unchanged fields stay plain, changed fields are marked by path, and added objects surface as new indexed paths.</p>
+
+    <div class="side-by-side">
+      <div class="version">
+        <h3>Previous Items</h3>
+        <diff-highlight-scope [fields]="itemDiffFields()" cssPrefix="left">
+          <div class="card diff-card">
+            @for (row of itemRows(); track row.path) {
+              <div class="field-row" [diffHighlightField]="row.path" [attr.data-item-left]="row.path">
+                <span class="label">{{ row.path }}</span>
+                <span class="value" [class.missing]="row.leftValue === 'Not present'">{{ row.leftValue }}</span>
+                <span class="diff-tag">{{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}</span>
+              </div>
+            }
+          </div>
+        </diff-highlight-scope>
+      </div>
+
+      <div class="version">
+        <h3>Current Items</h3>
+        <diff-highlight-scope [fields]="itemDiffFields()" cssPrefix="right">
+          <div class="card diff-card">
+            @for (row of itemRows(); track row.path) {
+              <div class="field-row" [diffHighlightField]="row.path" [attr.data-item-right]="row.path">
+                <span class="label">{{ row.path }}</span>
+                <span class="value" [class.missing]="row.rightValue === 'Not present'">{{ row.rightValue }}</span>
+                <span class="diff-tag">{{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}</span>
+              </div>
+            }
+          </div>
+        </diff-highlight-scope>
+      </div>
     </div>
   </section>
 </div>

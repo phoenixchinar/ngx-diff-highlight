@@ -55,8 +55,25 @@ export class App {
   diffFields = computed(() => computeDiff(this.leftObj, this.rightObj));
 
   // Scenario 5: Real-time Object Diffing
-  oldJson = signal('{\n  "name": "Jane",\n  "roles": ["Admin"]\n}');
-  newJson = signal('{\n  "name": "John",\n  "roles": ["Admin", "Editor"],\n  "active": true\n}');
+  oldJson = signal('{\n  "name": "Jane",\n  "team": "Platform",\n  "roles": ["Admin"]\n}');
+  newJson = signal('{\n  "name": "John",\n  "team": "Platform",\n  "roles": ["Admin", "Editor"],\n  "active": true\n}');
+
+  // Scenario 6: Arrays of objects
+  leftItems = {
+    items: [
+      { id: 1, name: 'Alpha', enabled: true },
+      { id: 2, name: 'Beta', enabled: false }
+    ]
+  };
+  rightItems = {
+    items: [
+      { id: 1, name: 'Alpha', enabled: true },
+      { id: 2, name: 'Beta v2', enabled: true },
+      { id: 3, name: 'Gamma', enabled: true }
+    ]
+  };
+  itemDiffFields = computed(() => computeDiff(this.leftItems, this.rightItems));
+  readonly itemRows = computed(() => this.buildComparisonRows(this.leftItems, this.rightItems, this.itemDiffFields()));
 
   readonly visualRows = computed(() => this.buildComparisonRows(this.leftObj, this.rightObj, this.diffFields()));
 

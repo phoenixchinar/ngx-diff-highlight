@@ -135,6 +135,10 @@ h1 {
   font-style: italic;
 }
 
+.value.unchanged-value {
+  color: #475569;
+}
+
 .diff-tag {
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
