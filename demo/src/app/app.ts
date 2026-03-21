@@ -1,7 +1,21 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
-import { DiffHighlightModule, DiffHighlightInput, computeDiff } from 'ngx-diff-highlight';
+import { DiffHighlightModule, DiffHighlightInput, computeDiff, DiffType } from 'ngx-diff-highlight';
+
+interface ComparisonRow {
+  path: string;
+  label: string;
+  leftValue: string;
+  rightValue: string;
+  type: DiffType | 'none';
+}
+
+interface ParsedJsonState {
+  oldValue: unknown | null;
+  newValue: unknown | null;
+  error: string | null;
+}
 
 @Component({
   selector: 'app-root',
@@ -44,15 +58,62 @@ export class App {
   // Scenario 5: Real-time Object Diffing
   oldJson = signal('{\n  "name": "Jane",\n  "roles": ["Admin"]\n}');
   newJson = signal('{\n  "name": "John",\n  "roles": ["Admin", "Editor"],\n  "active": true\n}');
-  
-  computedDiff = computed(() => {
+
+  readonly visualRows = computed(() => this.buildComparisonRows(this.leftObj, this.rightObj, this.diffFields()));
+
+  readonly parsedJsonState = computed<ParsedJsonState>(() => {
     try {
-      const oldObj = JSON.parse(this.oldJson());
-      const newObj = JSON.parse(this.newJson());
-      return computeDiff(oldObj, newObj);
-    } catch {
+      return {
+        oldValue: JSON.parse(this.oldJson()),
+        newValue: JSON.parse(this.newJson()),
+        error: null,
+      };
+    } catch (error) {
+      return {
+        oldValue: null,
+        newValue: null,
+        error: error instanceof Error ? error.message : 'Invalid JSON',
+      };
+    }
+  });
+
+  readonly computedDiff = computed(() => {
+    const state = this.parsedJsonState();
+    if (state.error) {
       return [];
     }
+    return computeDiff(state.oldValue, state.newValue);
+  });
+
+  readonly liveRows = computed(() => {
+    const state = this.parsedJsonState();
+    if (state.error) {
+      return [];
+    }
+    return this.buildComparisonRows(state.oldValue, state.newValue, this.computedDiff());
+  });
+
+  readonly liveSummary = computed(() => {
+    const summary = {
+      changed: 0,
+      added: 0,
+      deleted: 0,
+      unchanged: 0,
+    };
+
+    this.liveRows().forEach((row) => {
+      if (row.type === 'changed') {
+        summary.changed += 1;
+      } else if (row.type === 'added') {
+        summary.added += 1;
+      } else if (row.type === 'deleted') {
+        summary.deleted += 1;
+      } else {
+        summary.unchanged += 1;
+      }
+    });
+
+    return summary;
   });
 
   constructor() {
@@ -97,5 +158,80 @@ export class App {
     } else {
       this.scope2Fields.set([...current, field]);
     }
+  }
+
+  private buildComparisonRows(left: unknown, right: unknown, diffs: DiffHighlightInput[]): ComparisonRow[] {
+    const diffMap = new Map(
+      diffs.map((diff) => typeof diff === 'string' ? { path: diff, type: 'none' as const } : { path: diff.path, type: diff.type ?? 'none' })
+    );
+    const allPaths = Array.from(new Set([
+      ...this.collectLeafPaths(left),
+      ...this.collectLeafPaths(right),
+    ])).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    return allPaths.map((path) => ({
+      path,
+      label: this.toLabel(path),
+      leftValue: this.formatValue(this.readPath(left, path)),
+      rightValue: this.formatValue(this.readPath(right, path)),
+      type: diffMap.get(path) ?? 'none',
+    }));
+  }
+
+  private collectLeafPaths(value: unknown, path: string | null = null): string[] {
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return path ? [path] : [];
+      }
+
+      return value.flatMap((item, index) => {
+        const nextPath = path ? `${path}[${index}]` : `[${index}]`;
+        return this.collectLeafPaths(item, nextPath);
+      });
+    }
+
+    if (value !== null && typeof value === 'object') {
+      const entries = Object.entries(value as Record<string, unknown>);
+      if (entries.length === 0) {
+        return path ? [path] : [];
+      }
+
+      return entries.flatMap(([key, item]) => {
+        const nextPath = path ? `${path}.${key}` : key;
+        return this.collectLeafPaths(item, nextPath);
+      });
+    }
+
+    return path ? [path] : [];
+  }
+
+  private readPath(value: unknown, path: string): unknown {
+    const segments = path.match(/[^.[\]]+|\[\d+\]/g) ?? [];
+    let current = value;
+
+    for (const segment of segments) {
+      const key = segment.startsWith('[') ? Number(segment.slice(1, -1)) : segment;
+      if (current === null || current === undefined) {
+        return undefined;
+      }
+      current = (current as Record<string | number, unknown>)[key];
+    }
+
+    return current;
+  }
+
+  private formatValue(value: unknown): string {
+    if (value === undefined) {
+      return 'Not present';
+    }
+    if (typeof value === 'string') {
+      return value;
+    }
+    return JSON.stringify(value);
+  }
+
+  private toLabel(path: string): string {
+    const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
+    return parts[parts.length - 1] ?? path;
   }
 }
