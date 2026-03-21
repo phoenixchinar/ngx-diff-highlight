@@ -5,6 +5,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:lib": "ng build ngx-diff-highlight",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:coverage": "ng test --watch=false --coverage",

@@ -31,8 +31,10 @@ jobs:
         node-version: '22.x'
         cache: 'npm'
 
-    - name: Install dependencies
+    - name: Set up Environment for Angular v${{ matrix.angular-version }}
       run: |
+        npm install -g @angular/cli@^${{ matrix.angular-version }}.0.0
+        # Use --legacy-peer-deps to handle conflicts when forcing specific versions
         npm install \
           @angular/core@^${{ matrix.angular-version }}.0.0 \
           @angular/common@^${{ matrix.angular-version }}.0.0 \
@@ -42,10 +44,11 @@ jobs:
           @angular/router@^${{ matrix.angular-version }}.0.0 \
           @angular/compiler-cli@^${{ matrix.angular-version }}.0.0 \
           typescript@${{ matrix.typescript-version }} \
-          zone.js
+          zone.js \
+          --legacy-peer-deps
 
     - name: Build library
-      run: npx ng build ngx-diff-highlight
+      run: npm run build:lib
 
     - name: Build demo app
       run: npx ng build demo
