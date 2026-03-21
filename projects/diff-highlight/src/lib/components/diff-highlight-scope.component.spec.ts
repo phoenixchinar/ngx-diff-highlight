@@ -32,7 +32,7 @@ describe('DiffHighlightScopeComponent', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should update service fields when input changes', () => {
+  it('should update service fields when input changes', async () => {
     component.fields = ['user.name'];
     component.ngOnChanges({
       fields: {
@@ -42,6 +42,7 @@ describe('DiffHighlightScopeComponent', () => {
         isFirstChange: () => true,
       },
     });
+    await fixture.whenStable();
 
     let fields: string[] = [];
     const sub = service.fields$.subscribe((f: string[]) => (fields = f));
@@ -56,6 +57,7 @@ describe('DiffHighlightScopeComponent', () => {
         isFirstChange: () => false,
       },
     });
+    await fixture.whenStable();
     expect(fields).toEqual(['other.path']);
     sub.unsubscribe();
   });
@@ -73,6 +75,7 @@ describe('DiffHighlightScopeComponent', () => {
 
     const hostFixture = TestBed.createComponent(HostComponent);
     hostFixture.detectChanges();
+    await hostFixture.whenStable();
 
     const scopes = hostFixture.debugElement.queryAll(By.directive(DiffHighlightScopeComponent));
     expect(scopes.length).toBe(2);
@@ -121,8 +124,9 @@ describe('DiffHighlightScopeDirective', () => {
     component = fixture.componentInstance;
   });
 
-  it('should provide DiffHighlightService to children', () => {
+  it('should provide DiffHighlightService to children', async () => {
     fixture.detectChanges();
+    await fixture.whenStable();
     const child = fixture.debugElement.query(By.directive(ChildComponent)).componentInstance as ChildComponent;
     expect(child.service).toBeTruthy();
 
@@ -132,12 +136,14 @@ describe('DiffHighlightScopeDirective', () => {
     sub.unsubscribe();
   });
 
-  it('should update service fields when input changes', () => {
-    // No initial detectChanges
+  it('should update service fields when input changes', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
     const child = fixture.debugElement.query(By.directive(ChildComponent)).componentInstance as ChildComponent;
 
     component.fields = ['updated'];
     fixture.detectChanges();
+    await fixture.whenStable();
 
     let fields: string[] = [];
     const sub = child.service.fields$.subscribe((f: string[]) => (fields = f));
@@ -145,7 +151,7 @@ describe('DiffHighlightScopeDirective', () => {
     sub.unsubscribe();
   });
 
-  it('should isolate nested scopes', () => {
+  it('should isolate nested scopes', async () => {
     @Component({
       template: `
         <div [diffHighlightScope]="['parent']">
@@ -162,6 +168,7 @@ describe('DiffHighlightScopeDirective', () => {
 
     const nestedFixture = TestBed.createComponent(NestedHostComponent);
     nestedFixture.detectChanges();
+    await nestedFixture.whenStable();
 
     const children = nestedFixture.debugElement.queryAll(By.directive(ChildComponent));
     const service1 = children[0].componentInstance.service;

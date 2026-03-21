@@ -1,4 +1,4 @@
-import { Component, Directive, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { Component, Directive, Input, OnChanges, SimpleChanges, inject, ChangeDetectorRef } from '@angular/core';
 import { DiffHighlightService } from '../services/diff-highlight.service';
 
 /**
@@ -18,9 +18,15 @@ export class DiffHighlightScopeComponent implements OnChanges {
    */
   @Input() fields: string[] | null | undefined;
 
+  private readonly cdr = inject(ChangeDetectorRef);
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['fields']) {
-      this.service.setFields(this.fields);
+      // Defer to next microtask to avoid ExpressionChangedAfterItHasBeenCheckedError
+      Promise.resolve().then(() => {
+        this.service.setFields(this.fields);
+        this.cdr.markForCheck();
+      });
     }
   }
 }
@@ -41,9 +47,15 @@ export class DiffHighlightScopeDirective implements OnChanges {
    */
   @Input('diffHighlightScope') fields: string[] | null | undefined;
 
+  private readonly cdr = inject(ChangeDetectorRef);
+
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['fields']) {
-      this.service.setFields(this.fields);
+      // Defer to next microtask to avoid ExpressionChangedAfterItHasBeenCheckedError
+      Promise.resolve().then(() => {
+        this.service.setFields(this.fields);
+        this.cdr.markForCheck();
+      });
     }
   }
 }
