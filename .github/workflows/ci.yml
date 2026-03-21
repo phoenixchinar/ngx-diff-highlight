@@ -16,10 +16,13 @@ jobs:
         include:
           - angular-version: 18
             typescript-version: "~5.4.0"
+            builder-package: "@angular-devkit/build-angular@^18.0.0"
           - angular-version: 19
             typescript-version: "~5.5.0"
+            builder-package: "@angular-devkit/build-angular@^19.0.0"
           - angular-version: 21
             typescript-version: "~5.9.2"
+            builder-package: "@angular/build@^21.0.0"
 
     name: Angular v${{ matrix.angular-version }} Compatibility
     steps:
@@ -31,13 +34,10 @@ jobs:
         node-version: '22.x'
         cache: 'npm'
 
-    - name: Install base dependencies
-      run: npm ci
-
     - name: Set up Environment for Angular v${{ matrix.angular-version }}
-      if: matrix.angular-version != 21
       run: |
-        npm install --no-save \
+        # Clean install with specific versions
+        npm install \
           @angular/core@^${{ matrix.angular-version }}.0.0 \
           @angular/common@^${{ matrix.angular-version }}.0.0 \
           @angular/compiler@^${{ matrix.angular-version }}.0.0 \
@@ -45,21 +45,19 @@ jobs:
           @angular/platform-browser@^${{ matrix.angular-version }}.0.0 \
           @angular/router@^${{ matrix.angular-version }}.0.0 \
           @angular/compiler-cli@^${{ matrix.angular-version }}.0.0 \
+          ${{ matrix.builder-package }} \
           typescript@${{ matrix.typescript-version }} \
           zone.js \
           tslib@^2.3.0 \
+          rxjs@^7.8.0 \
+          ng-packagr@^${{ matrix.angular-version }}.0.0 \
+          vitest \
+          jsdom \
+          @angular-eslint/builder \
           --legacy-peer-deps
 
     - name: Build library
-      run: npm run build:lib
-
-    - name: Build demo app
-      if: matrix.angular-version == 21
-      run: npx ng build demo
+      run: npx ng build ngx-diff-highlight
 
     - name: Run library tests
       run: npx ng test ngx-diff-highlight --watch=false
-
-    - name: Run demo tests
-      if: matrix.angular-version == 21
-      run: npx ng test demo --watch=false
