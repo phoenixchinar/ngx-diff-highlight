@@ -3,3 +3,5 @@
  */
 
 export * from './lib/diff-highlight';
+export * from './lib/models/diff-highlight.models';
+export * from './lib/tokens/diff-highlight.tokens';
