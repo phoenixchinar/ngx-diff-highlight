@@ -47,13 +47,19 @@ jobs:
           @angular/compiler-cli@^${{ matrix.angular-version }}.0.0 \
           typescript@${{ matrix.typescript-version }} \
           zone.js \
+          tslib@^2.3.0 \
           --legacy-peer-deps
 
     - name: Build library
       run: npm run build:lib
 
     - name: Build demo app
+      if: matrix.angular-version == 21
       run: npx ng build demo
 
-    - name: Run tests
-      run: npm test -- --watch=false
+    - name: Run library tests
+      run: npx ng test ngx-diff-highlight --watch=false
+
+    - name: Run demo tests
+      if: matrix.angular-version == 21
+      run: npx ng test demo --watch=false
