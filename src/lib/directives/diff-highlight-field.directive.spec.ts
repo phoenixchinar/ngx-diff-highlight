@@ -1,8 +1,8 @@
-import { Component, ElementRef, Renderer2, Type } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { NgControl } from '@angular/forms';
-import { BehaviorSubject, of } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { DiffHighlightFieldDirective } from './diff-highlight-field.directive';
 import { DiffHighlightService } from '../services/diff-highlight.service';
 import { DIFF_HIGHLIGHT_CONFIG, DIFF_HIGHLIGHT_PATH_CONTEXT } from '../tokens/diff-highlight.tokens';
@@ -10,7 +10,7 @@ import { DiffHighlightPathContext } from '../models/diff-highlight.models';
 
 // Mock Component for basic tests
 @Component({
-  selector: 'test-basic-cmp',
+  selector: 'app-test-basic-cmp',
   template: `
     <div id="field1" diffHighlightField (fieldInDiff)="onFieldInDiff($event)"></div>
     <div [diffHighlightField]="'explicit.path'" id="ignore-id"></div>
@@ -20,12 +20,15 @@ import { DiffHighlightPathContext } from '../models/diff-highlight.models';
   imports: [DiffHighlightFieldDirective],
 })
 class TestComponent {
-  onFieldInDiff = (val: boolean) => {};
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onFieldInDiff = (_val: boolean) => {
+    // Mock method
+  };
 }
 
 // Mock for NgControl precedence
 @Component({
-  selector: 'test-ngcontrol-cmp',
+  selector: 'app-test-ngcontrol-cmp',
   template: `<div diffHighlightField></div>`,
   standalone: true,
   imports: [DiffHighlightFieldDirective],
@@ -34,7 +37,7 @@ class NgControlTestComponent {}
 
 // Mock for Context precedence
 @Component({
-  selector: 'test-context-cmp',
+  selector: 'app-test-context-cmp',
   template: `<div diffHighlightField></div>`,
   standalone: true,
   imports: [DiffHighlightFieldDirective],
@@ -43,7 +46,7 @@ class ContextTestComponent {}
 
 describe('DiffHighlightFieldDirective', () => {
   let fields$: BehaviorSubject<string[]>;
-  let mockService: any;
+  let mockService: { fields$: Observable<string[]> };
 
   beforeEach(() => {
     fields$ = new BehaviorSubject<string[]>([]);
@@ -217,5 +220,22 @@ describe('DiffHighlightFieldDirective', () => {
     const idEl = fixture.debugElement.query(By.css('#field1')).nativeElement;
     // Since no service, no subscription, no classes added even if we somehow knew fields
     expect(idEl.classList.contains('hl')).toBe(false);
+  });
+
+  it('should be inert if no DiffHighlightService is provided', () => {
+    // We create a component without the service in providers
+    @Component({
+      template: `<div id="field1" diffHighlightField></div>`,
+      standalone: true,
+      imports: [DiffHighlightFieldDirective],
+    })
+    class NoServiceComponent {}
+
+    const fixture = TestBed.createComponent(NoServiceComponent);
+    fixture.detectChanges();
+
+    const el = fixture.debugElement.query(By.css('#field1')).nativeElement;
+    // Should not have any highlight classes
+    expect(el.classList.contains('highlight-diff')).toBe(false);
   });
 });

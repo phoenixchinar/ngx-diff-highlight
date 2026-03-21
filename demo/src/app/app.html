@@ -7,8 +7,8 @@
     <p>Displays simple path resolution. Update the input to change highlighted fields.</p>
     
     <div class="controls">
-      <label>Highlighted Fields (comma-separated): </label>
-      <input #basicInput [value]="basicFieldsInput()" (input)="updateBasicFields(basicInput.value)">
+      <label for="basic-fields">Highlighted Fields (comma-separated): </label>
+      <input id="basic-fields" #basicInput [value]="basicFieldsInput()" (input)="updateBasicFields(basicInput.value)">
     </div>
 
     <diff-highlight-scope [fields]="basicFields()">
@@ -35,8 +35,8 @@
     <p>Uses <code>diffHighlightGroup</code> and <code>diffHighlightArray</code> to resolve nested paths in a form.</p>
 
     <div class="controls">
-      <label>Highlighted Form Paths (comma-separated): </label>
-      <input #formInput [value]="formFieldsInput()" (input)="updateFormFields(formInput.value)">
+      <label for="form-fields">Highlighted Form Paths (comma-separated): </label>
+      <input id="form-fields" #formInput [value]="formFieldsInput()" (input)="updateFormFields(formInput.value)">
     </div>
 
     <diff-highlight-scope [fields]="formFields()">
@@ -44,23 +44,23 @@
         <div diffHighlightGroup="user" formGroupName="user">
           <h3>User Details</h3>
           <div [diffHighlightField]="'firstName'">
-            <label>First Name: </label>
-            <input formControlName="firstName">
+            <label for="first-name">First Name: </label>
+            <input id="first-name" formControlName="firstName">
           </div>
           <div [diffHighlightField]="'lastName'">
-            <label>Last Name: </label>
-            <input formControlName="lastName">
+            <label for="last-name">Last Name: </label>
+            <input id="last-name" formControlName="lastName">
           </div>
         </div>
 
         <div diffHighlightArray="roles" [formArrayName]="'roles'">
           <h3>User Roles</h3>
-          <div *ngFor="let role of roles.controls; let i = index">
+          @for (role of roles.controls; track i; let i = $index) {
             <div [diffHighlightName]="i">
-              <label>Role {{ i }}: </label>
-              <input [formControlName]="i">
+              <label [for]="'role-' + i">Role {{ i }}: </label>
+              <input [id]="'role-' + i" [formControlName]="i">
             </div>
-          </div>
+          }
         </div>
       </form>
     </diff-highlight-scope>

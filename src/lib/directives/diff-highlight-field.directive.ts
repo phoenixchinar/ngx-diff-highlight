@@ -3,19 +3,17 @@ import {
   Input,
   Output,
   EventEmitter,
-  Optional,
-  Inject,
   ElementRef,
   Renderer2,
   OnInit,
   OnDestroy,
+  inject,
 } from '@angular/core';
 import { NgControl } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { DiffHighlightService } from '../services/diff-highlight.service';
 import { DIFF_HIGHLIGHT_PATH_CONTEXT, DIFF_HIGHLIGHT_CONFIG } from '../tokens/diff-highlight.tokens';
-import { DiffHighlightPathContext, DiffHighlightConfig } from '../models/diff-highlight.models';
 import { pathsMatch, normalizeDiffPath } from '../utils/path-utils';
 
 @Directive({
@@ -43,14 +41,12 @@ export class DiffHighlightFieldDirective implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(
-    private el: ElementRef,
-    private renderer: Renderer2,
-    @Inject(DIFF_HIGHLIGHT_CONFIG) private config: DiffHighlightConfig,
-    @Optional() private service: DiffHighlightService | null,
-    @Optional() @Inject(DIFF_HIGHLIGHT_PATH_CONTEXT) private pathContext: DiffHighlightPathContext | null,
-    @Optional() private ngControl: NgControl | null
-  ) {}
+  private el = inject(ElementRef);
+  private renderer = inject(Renderer2);
+  private config = inject(DIFF_HIGHLIGHT_CONFIG);
+  private service = inject(DiffHighlightService, { optional: true });
+  private pathContext = inject(DIFF_HIGHLIGHT_PATH_CONTEXT, { optional: true });
+  private ngControl = inject(NgControl, { optional: true });
 
   ngOnInit(): void {
     if (!this.service) {

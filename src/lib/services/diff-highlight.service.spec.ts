@@ -23,7 +23,7 @@ describe('DiffHighlightService', () => {
 
   describe('setFields', () => {
     it('should set and normalize fields', async () => {
-      service.setFields(['  user.name  ', 'items.0.id', null as any, 'items[1].name']);
+      service.setFields(['  user.name  ', 'items.0.id', null as unknown as string, 'items[1].name']);
       const fields = await firstValueFrom(service.fields$);
       expect(fields).toEqual(['user.name', 'items[0].id', 'items[1].name']);
     });

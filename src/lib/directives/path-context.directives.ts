@@ -1,4 +1,4 @@
-import { Directive, Input, Optional, SkipSelf, Inject, forwardRef } from '@angular/core';
+import { Directive, Input, forwardRef, inject } from '@angular/core';
 import { ControlContainer } from '@angular/forms';
 import { DIFF_HIGHLIGHT_PATH_CONTEXT } from '../tokens/diff-highlight.tokens';
 import { DiffHighlightPathContext, DiffFieldPath } from '../models/diff-highlight.models';
@@ -10,9 +10,10 @@ import { joinDiffPath } from '../utils/path-utils';
  */
 @Directive()
 export abstract class DiffHighlightPathDirective implements DiffHighlightPathContext {
-  constructor(
-    @Optional() @SkipSelf() @Inject(DIFF_HIGHLIGHT_PATH_CONTEXT) protected parentContext: DiffHighlightPathContext | null
-  ) {}
+  protected parentContext = inject(DIFF_HIGHLIGHT_PATH_CONTEXT, {
+    optional: true,
+    skipSelf: true,
+  }) as DiffHighlightPathContext | null;
 
   abstract get segment(): string | number | null;
 
@@ -41,19 +42,16 @@ export class DiffHighlightGroupDirective extends DiffHighlightPathDirective {
     this.groupName = val;
   }
 
-  constructor(
-    @Optional() @SkipSelf() @Inject(DIFF_HIGHLIGHT_PATH_CONTEXT) parentContext: DiffHighlightPathContext | null,
-    @Optional() private controlContainer: ControlContainer
-  ) {
-    super(parentContext);
-  }
+  private controlContainer = inject(ControlContainer, { optional: true });
 
   get segment(): string | number | null {
     if (this.groupName !== null && this.groupName !== '') {
       return this.groupName;
     }
     if (this.controlContainer) {
-      return this.controlContainer.name || (this.controlContainer.path ? this.controlContainer.path.join('.') : null);
+      return (
+        this.controlContainer.name || (this.controlContainer.path ? this.controlContainer.path.join('.') : null)
+      );
     }
     return null;
   }

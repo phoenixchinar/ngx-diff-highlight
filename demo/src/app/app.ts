@@ -1,17 +1,18 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
-import { RouterOutlet } from '@angular/router';
 import { DiffHighlightModule } from 'diff-highlight';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterOutlet, DiffHighlightModule],
+  imports: [CommonModule, ReactiveFormsModule, DiffHighlightModule],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
+  private fb = inject(FormBuilder);
+
   // Scenario 1: Basic Detail View
   basicFieldsInput = signal('name, address.city');
   basicFields = computed(() => this.basicFieldsInput().split(',').map(s => s.trim()).filter(s => !!s));
@@ -25,7 +26,7 @@ export class App {
   scope1Fields = signal(['title', 'description']);
   scope2Fields = signal(['title', 'status']);
 
-  constructor(private fb: FormBuilder) {
+  constructor() {
     this.form = this.fb.group({
       user: this.fb.group({
         firstName: ['John'],

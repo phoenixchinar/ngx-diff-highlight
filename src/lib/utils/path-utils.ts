@@ -69,7 +69,7 @@ export function joinDiffPath(parent: string | null, child: string | number | nul
 /**
  * Builds a path from an array of segments.
  */
-export function buildDiffPath(segments: Array<string | number | null | undefined>): string | null {
+export function buildDiffPath(segments: (string | number | null | undefined)[]): string | null {
   return segments.reduce<string | null>((acc, curr) => joinDiffPath(acc, curr), null);
 }
 

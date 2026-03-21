@@ -1,6 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ControlContainer, FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { 
   DiffHighlightGroupDirective, 
   DiffHighlightArrayDirective, 

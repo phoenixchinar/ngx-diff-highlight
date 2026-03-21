@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormGroup, FormArray, FormControl } from '@angular/forms';
-import { CommonModule } from '@angular/common';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DiffHighlightModule } from './diff-highlight.module';
 import { provideDiffHighlightConfig } from './providers';
@@ -9,14 +8,16 @@ import { provideDiffHighlightConfig } from './providers';
 // Scenario 1: Nested FormArray
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DiffHighlightModule],
+  imports: [ReactiveFormsModule, DiffHighlightModule],
   template: `
     <div [diffHighlightScope]="diffFields">
       <form [formGroup]="form">
         <div diffHighlightGroup="items" formArrayName="items">
-          <div *ngFor="let item of items.controls; let i = index" [formGroupName]="i" [diffHighlightArray]="i">
-            <input formControlName="name" diffHighlightName="name" diffHighlightField>
-          </div>
+          @for (item of items.controls; track i; let i = $index) {
+            <div [formGroupName]="i" [diffHighlightArray]="i">
+              <input formControlName="name" diffHighlightName="name" diffHighlightField>
+            </div>
+          }
         </div>
       </form>
     </div>
