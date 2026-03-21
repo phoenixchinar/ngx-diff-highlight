@@ -14,7 +14,7 @@ By default, the `DiffHighlightFieldDirective` applies the following classes when
 You can customize these classes globally or per-scope by providing a `DIFF_HIGHLIGHT_CONFIG`.
 
 ```ts
-import { provideDiffHighlightConfig } from 'ng-diff-highlight';
+import { provideDiffHighlightConfig } from 'ngx-diff-highlight';
 
 // In your app bootstrap
 bootstrapApplication(AppComponent, {

@@ -23,7 +23,7 @@ jobs:
       run: npm ci
 
     - name: Build library
-      run: npx ng build ng-diff-highlight
+      run: npx ng build ngx-diff-highlight
 
     - name: Build demo app
       run: npx ng build demo

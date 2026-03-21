@@ -10,6 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-03-21
 
 ### Added
-- Initial project structure for `ng-diff-highlight` library and demo app.
+- Initial project structure for `ngx-diff-highlight` library and demo app.
 - GitHub Actions CI workflow.
 - Standard open-source documentation.

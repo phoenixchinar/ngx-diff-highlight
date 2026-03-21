@@ -5,7 +5,7 @@ import { DiffHighlightScopeComponent, DiffHighlightScopeDirective } from './diff
 import { DiffHighlightService } from '../services/diff-highlight.service';
 
 @Component({
-  selector: 'child-component',
+  selector: 'app-child-component',
   template: '',
   standalone: true,
 })
@@ -102,7 +102,7 @@ describe('DiffHighlightScopeDirective', () => {
   @Component({
     template: `
       <div [diffHighlightScope]="fields">
-        <child-component></child-component>
+        <app-child-component></app-child-component>
       </div>
     `,
     standalone: true,
@@ -155,9 +155,9 @@ describe('DiffHighlightScopeDirective', () => {
     @Component({
       template: `
         <div [diffHighlightScope]="['parent']">
-          <child-component #child1></child-component>
+          <app-child-component #child1></app-child-component>
           <div [diffHighlightScope]="['child']">
-            <child-component #child2></child-component>
+            <app-child-component #child2></app-child-component>
           </div>
         </div>
       `,

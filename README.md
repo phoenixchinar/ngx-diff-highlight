@@ -1,9 +1,9 @@
-# ng-diff-highlight
+# ngx-diff-highlight
 
 Angular library for resolving canonical diff field paths, scoping those paths to a subtree, and applying deterministic highlight behavior for both editable and read-only UIs.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Build Status](https://github.com/imran/ng-diff-highlight/actions/workflows/ci.yml/badge.svg)](https://github.com/imran/ng-diff-highlight/actions)
+[![Build Status](https://github.com/imran/ngx-diff-highlight/actions/workflows/ci.yml/badge.svg)](https://github.com/imran/ngx-diff-highlight/actions)
 
 ## Features
 
@@ -16,7 +16,7 @@ Angular library for resolving canonical diff field paths, scoping those paths to
 ## Installation
 
 ```bash
-npm install ng-diff-highlight
+npm install ngx-diff-highlight
 ```
 
 ## Quick Start
@@ -24,7 +24,7 @@ npm install ng-diff-highlight
 ### 1. Register the library
 
 ```ts
-import { DiffHighlightModule } from 'ng-diff-highlight';
+import { DiffHighlightModule } from 'ngx-diff-highlight';
 
 @Component({
   standalone: true,

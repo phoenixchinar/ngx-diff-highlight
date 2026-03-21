@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "../dist/ng-diff-highlight",
+  "dest": "../dist/ngx-diff-highlight",
   "lib": {
     "entryFile": "public-api.ts"
   },

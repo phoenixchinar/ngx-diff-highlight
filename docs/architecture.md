@@ -2,7 +2,7 @@
 
 ## Scoped Service Pattern
 
-`ng-diff-highlight` uses a scoped service pattern to manage diff state. 
+`ngx-diff-highlight` uses a scoped service pattern to manage diff state. 
 
 - `DiffHighlightService` is NOT provided in `root`.
 - It is provided by the `DiffHighlightScopeComponent` or `DiffHighlightScopeDirective`.

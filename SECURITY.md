@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-The following versions of ng-diff-highlight are currently being supported with security updates.
+The following versions of ngx-diff-highlight are currently being supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -10,7 +10,7 @@ The following versions of ng-diff-highlight are currently being supported with s
 
 ## Reporting a Vulnerability
 
-If you discover a potential security vulnerability in ng-diff-highlight, please do not disclose it publicly. Instead, please report it by opening a private security advisory on GitHub or by contacting the maintainers directly.
+If you discover a potential security vulnerability in ngx-diff-highlight, please do not disclose it publicly. Instead, please report it by opening a private security advisory on GitHub or by contacting the maintainers directly.
 
 Once we receive your report, we will:
 

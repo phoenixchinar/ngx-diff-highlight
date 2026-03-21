@@ -19,6 +19,6 @@ describe('App', () => {
     fixture.detectChanges(); // Trigger initial change detection
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('ng-diff-highlight Showcase');
+    expect(compiled.querySelector('h1')?.textContent).toContain('ngx-diff-highlight Showcase');
   });
 });

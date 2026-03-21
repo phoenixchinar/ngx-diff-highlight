@@ -1,6 +1,6 @@
 # Testing Guide
 
-Testing components that use `ng-diff-highlight` is simple because it relies on standard Angular patterns.
+Testing components that use `ngx-diff-highlight` is simple because it relies on standard Angular patterns.
 
 ## Mocking the Service
 
@@ -9,7 +9,7 @@ If you're testing a component that provides a scope, you can usually let the lib
 If you're testing a component with a `diffHighlightField` directive that needs a service from an ancestor, provide a mock in your test:
 
 ```ts
-import { DiffHighlightService } from 'ng-diff-highlight';
+import { DiffHighlightService } from 'ngx-diff-highlight';
 import { BehaviorSubject } from 'rxjs';
 
 describe('MyComponent', () => {

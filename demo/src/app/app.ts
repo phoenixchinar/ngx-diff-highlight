@@ -1,7 +1,7 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
-import { DiffHighlightModule } from 'diff-highlight';
+import { DiffHighlightModule } from 'ngx-diff-highlight';
 
 @Component({
   selector: 'app-root',

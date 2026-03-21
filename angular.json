@@ -6,7 +6,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "ng-diff-highlight": {
+    "ngx-diff-highlight": {
       "projectType": "library",
       "root": "src",
       "sourceRoot": "src",

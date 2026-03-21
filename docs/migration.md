@@ -1,6 +1,6 @@
 # Migration Guide
 
-`ng-diff-highlight` is designed to be a drop-in replacement for the legacy highlight system in many cases.
+`ngx-diff-highlight` is designed to be a drop-in replacement for the legacy highlight system in many cases.
 
 ## From `app-highlight-fields` to `diff-highlight-scope`
 

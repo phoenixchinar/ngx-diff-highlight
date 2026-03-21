@@ -4,7 +4,7 @@
   "compileOnSave": false,
   "compilerOptions": {
     "paths": {
-      "diff-highlight": ["./src/public-api.ts"]
+      "ngx-diff-highlight": ["./src/public-api.ts"]
     },
     "strict": true,
     "noImplicitOverride": true,

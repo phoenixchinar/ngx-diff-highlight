@@ -1,5 +1,5 @@
 {
-  "name": "ng-diff-highlight",
+  "name": "ngx-diff-highlight",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
