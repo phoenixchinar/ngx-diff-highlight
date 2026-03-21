@@ -1,7 +1,7 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
-import { DiffHighlightModule, DiffHighlightInput } from 'ngx-diff-highlight';
+import { DiffHighlightModule, DiffHighlightInput, computeDiff } from 'ngx-diff-highlight';
 
 @Component({
   selector: 'app-root',
@@ -32,6 +32,20 @@ export class App {
     { path: 'user.lastName', type: 'added' },
     { path: 'user.bio', type: 'deleted' }
   ]);
+
+  // Scenario 5: Real-time Object Diffing
+  oldJson = signal('{\n  "name": "Jane",\n  "roles": ["Admin"]\n}');
+  newJson = signal('{\n  "name": "John",\n  "roles": ["Admin", "Editor"],\n  "active": true\n}');
+  
+  computedDiff = computed(() => {
+    try {
+      const oldObj = JSON.parse(this.oldJson());
+      const newObj = JSON.parse(this.newJson());
+      return computeDiff(oldObj, newObj);
+    } catch {
+      return [];
+    }
+  });
 
   constructor() {
     this.form = this.fb.group({

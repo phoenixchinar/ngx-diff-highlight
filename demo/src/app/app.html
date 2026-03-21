@@ -151,4 +151,37 @@
       </div>
     </div>
   </section>
+
+  <!-- Scenario 5: Real-time Diffing -->
+  <section class="scenario">
+    <h2>5. Real-time Object Diffing</h2>
+    <p>Edit the JSON below to see the differences computed and highlighted in real-time using <code>computeDiff()</code>.</p>
+
+    <div class="side-by-side">
+      <div class="version">
+        <h3>Original JSON</h3>
+        <textarea [value]="oldJson()" (input)="oldJson.set(t1.value)" #t1 class="json-editor"></textarea>
+      </div>
+      <div class="version">
+        <h3>New JSON</h3>
+        <textarea [value]="newJson()" (input)="newJson.set(t2.value)" #t2 class="json-editor"></textarea>
+      </div>
+    </div>
+
+    <div class="diff-result">
+      <h3>Live Result</h3>
+      <diff-highlight-scope [fields]="computedDiff()">
+        <div class="card">
+          <div [diffHighlightField]="'name'"><strong>Name:</strong> John</div>
+          <div [diffHighlightField]="'active'"><strong>Active:</strong> True</div>
+          <div diffHighlightArray="roles">
+            <strong>Roles:</strong>
+            @for (role of ['Admin', 'Editor']; track role) {
+              <div [diffHighlightName]="$index" class="role-tag">{{ role }}</div>
+            }
+          </div>
+        </div>
+      </diff-highlight-scope>
+    </div>
+  </section>
 </div>
