@@ -32,6 +32,8 @@ describe('App', () => {
     expect(compiled.querySelector('.left-changed')).toBeTruthy();
     expect(compiled.querySelector('.left-deleted')).toBeTruthy();
     expect(compiled.querySelector('.right-added')).toBeTruthy();
+    expect(compiled.querySelector('[data-path="user.team"]')?.textContent).toContain('UNCHANGED');
+    expect(compiled.querySelector('[data-path="user.team"]')?.classList.contains('diff-highlight')).toBe(false);
   });
 
   it('should highlight form array inputs', async () => {
@@ -44,7 +46,7 @@ describe('App', () => {
     expect(compiled.querySelector('[data-role-path="roles[1]"].diff-highlight')).toBeTruthy();
   });
 
-  it('should show the current computeDiff gap note and handle invalid json', async () => {
+  it('should show the current computeDiff array behavior note and handle invalid json', async () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
 
@@ -52,7 +54,8 @@ describe('App', () => {
     await fixture.whenStable();
 
     let compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Current library gap:');
+    expect(compiled.textContent).toContain('Current library behavior:');
+    expect(compiled.textContent).toContain('stable identity keys');
     expect(compiled.querySelector('[data-live-row="team"]')?.textContent).toContain('UNCHANGED');
     expect(compiled.querySelector('[data-live-row="roles[1]"]')).toBeTruthy();
     expect(compiled.querySelector('[data-item-right="items[2].name"]')).toBeTruthy();

@@ -11,6 +11,7 @@ Angular library for resolving canonical diff field paths, scoping those paths to
 - **Scoped diff state management:** Each `diff-highlight-scope` is isolated, allowing multiple independent diffs on the same page.
 - **Precedence-based path resolution:** Automatic path resolution from DOM, Angular forms, or hierarchical context.
 - **Deterministic highlighting:** Symmetric matching for exact, ancestor, and descendant matches.
+- **Semantic array diffing:** `computeDiff()` can align moved array items by stable identity keys such as `id`, `key`, `uuid`, and `_id`.
 - **Seamless integration:** Built-in support for Angular Reactive Forms.
 - **Compatibility:** Aliases for legacy `appHighlightField*` selectors.
 

@@ -43,13 +43,15 @@ export class App {
   leftObj = {
     user: {
       firstName: 'Jane',
-      bio: 'Original bio text.'
+      bio: 'Original bio text.',
+      team: 'Platform'
     }
   };
   rightObj = {
     user: {
       firstName: 'John',
-      lastName: 'Doe'
+      lastName: 'Doe',
+      team: 'Platform'
     }
   };
   diffFields = computed(() => computeDiff(this.leftObj, this.rightObj));

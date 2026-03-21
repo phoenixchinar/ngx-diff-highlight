@@ -85,6 +85,52 @@ describe('diff-utils', () => {
         // It should identify that {id: 2} was inserted at index 1
         expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'users[1]', type: 'added' }]);
       });
+
+      it('should ignore pure moves for keyed array objects', () => {
+        const oldObj = {
+          users: [
+            { id: 1, name: 'Alice' },
+            { id: 2, name: 'Bob' },
+            { id: 3, name: 'Charlie' }
+          ]
+        };
+        const newObj = {
+          users: [
+            { id: 2, name: 'Bob' },
+            { id: 1, name: 'Alice' },
+            { id: 3, name: 'Charlie' }
+          ]
+        };
+
+        expect(computeDiff(oldObj, newObj)).toEqual([]);
+      });
+
+      it('should detect renamed fields after keyed items move', () => {
+        const oldObj = {
+          users: [
+            { id: 1, name: 'Alice' },
+            { id: 2, name: 'Bob' }
+          ]
+        };
+        const newObj = {
+          users: [
+            { id: 2, name: 'Bobby' },
+            { id: 1, name: 'Alice' }
+          ]
+        };
+
+        expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'users[0].name', type: 'changed' }]);
+      });
+
+      it('should still fall back to index-based comparison without stable identities', () => {
+        const oldObj = { users: [{ name: 'Alice' }, { name: 'Bob' }] };
+        const newObj = { users: [{ name: 'Bob' }, { name: 'Alice' }] };
+
+        expect(computeDiff(oldObj, newObj)).toEqual([
+          { path: 'users[0].name', type: 'changed' },
+          { path: 'users[1].name', type: 'changed' }
+        ]);
+      });
     });
   });
 });

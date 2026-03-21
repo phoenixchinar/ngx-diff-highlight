@@ -179,7 +179,7 @@
         </diff-highlight-scope>
 
         <div class="gap-note">
-          <strong>Current library gap:</strong> <code>computeDiff()</code> is path- and index-based. It does not detect semantic moves or renames inside arrays.
+          <strong>Current library behavior:</strong> <code>computeDiff()</code> now aligns array items by stable identity keys such as <code>id</code>, <code>key</code>, and <code>uuid</code>. Arrays without a stable identity still fall back to index-based diffing.
         </div>
       }
     </div>
