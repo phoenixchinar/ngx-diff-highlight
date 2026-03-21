@@ -7,9 +7,13 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  test-compatibility:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        angular-version: [18, 19, 20, 21]
 
+    name: Angular v${{ matrix.angular-version }} Compatibility
     steps:
     - uses: actions/checkout@v4
     
@@ -19,8 +23,20 @@ jobs:
         node-version: '22.x'
         cache: 'npm'
 
-    - name: Install dependencies
+    - name: Install base dependencies
       run: npm ci
+
+    - name: Install Angular v${{ matrix.angular-version }}
+      run: |
+        npm install --no-save \
+          @angular/core@^${{ matrix.angular-version }}.0.0 \
+          @angular/common@^${{ matrix.angular-version }}.0.0 \
+          @angular/compiler@^${{ matrix.angular-version }}.0.0 \
+          @angular/forms@^${{ matrix.angular-version }}.0.0 \
+          @angular/platform-browser@^${{ matrix.angular-version }}.0.0 \
+          @angular/router@^${{ matrix.angular-version }}.0.0 \
+          @angular/compiler-cli@^${{ matrix.angular-version }}.0.0 \
+          zone.js
 
     - name: Build library
       run: npx ng build ngx-diff-highlight
