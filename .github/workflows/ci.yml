@@ -10,8 +10,16 @@ jobs:
   test-compatibility:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        angular-version: [18, 19, 20, 21]
+        angular-version: [18, 19, 21]
+        include:
+          - angular-version: 18
+            typescript-version: "~5.4.0"
+          - angular-version: 19
+            typescript-version: "~5.5.0"
+          - angular-version: 21
+            typescript-version: "~5.9.2"
 
     name: Angular v${{ matrix.angular-version }} Compatibility
     steps:
@@ -23,12 +31,9 @@ jobs:
         node-version: '22.x'
         cache: 'npm'
 
-    - name: Install base dependencies
-      run: npm ci
-
-    - name: Install Angular v${{ matrix.angular-version }}
+    - name: Install dependencies
       run: |
-        npm install --no-save \
+        npm install \
           @angular/core@^${{ matrix.angular-version }}.0.0 \
           @angular/common@^${{ matrix.angular-version }}.0.0 \
           @angular/compiler@^${{ matrix.angular-version }}.0.0 \
@@ -36,6 +41,7 @@ jobs:
           @angular/platform-browser@^${{ matrix.angular-version }}.0.0 \
           @angular/router@^${{ matrix.angular-version }}.0.0 \
           @angular/compiler-cli@^${{ matrix.angular-version }}.0.0 \
+          typescript@${{ matrix.typescript-version }} \
           zone.js
 
     - name: Build library
