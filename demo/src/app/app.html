@@ -55,10 +55,10 @@
 
         <div diffHighlightArray="roles" [formArrayName]="'roles'">
           <h3>User Roles</h3>
-          @for (role of roles.controls; track i; let i = $index) {
-            <div [diffHighlightName]="i">
-              <label [for]="'role-' + i">Role {{ i }}: </label>
-              <input [id]="'role-' + i" [formControlName]="i" diffHighlightField>
+          @for (role of roles.controls; track $index) {
+            <div [diffHighlightName]="$index">
+              <label [for]="'role-' + $index">Role {{ $index }}: </label>
+              <input [id]="'role-' + $index" [formControlName]="$index" diffHighlightField>
             </div>
           }
         </div>
@@ -107,7 +107,7 @@
   <!-- Scenario 4: Visual Diff -->
   <section class="scenario">
     <h2>4. Visual Diff Representation & Prefixes</h2>
-    <p>Using <code>computeDiff()</code> to render changed, deleted, added, and unchanged rows with different prefix-based styles on each side.</p>
+    <p>Using <code>computeDiff()</code> with prefixed classes. The demo keeps the rendering simple and lets the library-applied classes drive the visual state.</p>
 
     <div class="side-by-side">
       <div class="version">
@@ -116,21 +116,12 @@
           <div class="card diff-card">
             @for (row of visualRows(); track row.path) {
               <div class="field-row" [diffHighlightField]="row.path" [attr.data-path]="row.path">
-                <div class="field-header">
-                  <span class="label">{{ row.label }}</span>
-                  <span class="field-path">{{ row.path }}</span>
-                  <span
-                    class="diff-tag"
-                    [class.changed]="row.type === 'changed'"
-                    [class.added]="row.type === 'added'"
-                    [class.deleted]="row.type === 'deleted'"
-                    [class.unchanged]="row.type === 'none'">
-                    {{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}
-                  </span>
-                </div>
+                <span class="label">{{ row.path }}</span>
                 <span class="value" [class.missing]="row.leftValue === 'Not present'">{{ row.leftValue }}</span>
+                <span class="diff-tag">{{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}</span>
               </div>
-            </div>
+            }
+          </div>
         </diff-highlight-scope>
       </div>
 
@@ -140,19 +131,9 @@
           <div class="card diff-card">
             @for (row of visualRows(); track row.path) {
               <div class="field-row" [diffHighlightField]="row.path" [attr.data-path]="row.path">
-                <div class="field-header">
-                  <span class="label">{{ row.label }}</span>
-                  <span class="field-path">{{ row.path }}</span>
-                  <span
-                    class="diff-tag"
-                    [class.changed]="row.type === 'changed'"
-                    [class.added]="row.type === 'added'"
-                    [class.deleted]="row.type === 'deleted'"
-                    [class.unchanged]="row.type === 'none'">
-                    {{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}
-                  </span>
-                </div>
+                <span class="label">{{ row.path }}</span>
                 <span class="value" [class.missing]="row.rightValue === 'Not present'">{{ row.rightValue }}</span>
+                <span class="diff-tag">{{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}</span>
               </div>
             }
           </div>
@@ -164,7 +145,7 @@
   <!-- Scenario 5: Real-time Diffing -->
   <section class="scenario">
     <h2>5. Real-time Object Diffing</h2>
-    <p>Edit the JSON below to see live changed, added, deleted, and unchanged rows. Array indexes resolve to bracket paths such as <code>roles[1]</code>.</p>
+    <p>Edit the JSON below to see live diff paths. This section also calls out current behavior that belongs to the library, not the demo.</p>
 
     <div class="side-by-side">
       <div class="version">
@@ -185,63 +166,20 @@
           Unable to compute the diff: {{ parsedJsonState().error }}
         </div>
       } @else {
-        <div class="summary-row">
-          <div class="summary-pill changed">Changed: {{ liveSummary().changed }}</div>
-          <div class="summary-pill added">Added: {{ liveSummary().added }}</div>
-          <div class="summary-pill deleted">Deleted: {{ liveSummary().deleted }}</div>
-          <div class="summary-pill unchanged">Unchanged: {{ liveSummary().unchanged }}</div>
-        </div>
-
-        <div class="side-by-side">
-          <div class="version">
-            <h3>Previous Value</h3>
-            <diff-highlight-scope [fields]="computedDiff()" cssPrefix="left">
-              <div class="card diff-card">
-                @for (row of liveRows(); track row.path) {
-                  <div class="field-row" [diffHighlightField]="row.path" [attr.data-live-left]="row.path">
-                    <div class="field-header">
-                      <span class="label">{{ row.label }}</span>
-                      <span class="field-path">{{ row.path }}</span>
-                      <span
-                        class="diff-tag"
-                        [class.changed]="row.type === 'changed'"
-                        [class.added]="row.type === 'added'"
-                        [class.deleted]="row.type === 'deleted'"
-                        [class.unchanged]="row.type === 'none'">
-                        {{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}
-                      </span>
-                    </div>
-                    <span class="value" [class.missing]="row.leftValue === 'Not present'">{{ row.leftValue }}</span>
-                  </div>
-                }
+        <diff-highlight-scope [fields]="computedDiff()">
+          <div class="card diff-card">
+            @for (row of liveRows(); track row.path) {
+              <div class="field-row" [diffHighlightField]="row.path" [attr.data-live-row]="row.path">
+                <span class="label">{{ row.path }}</span>
+                <span class="value">{{ row.leftValue }} -> {{ row.rightValue }}</span>
+                <span class="diff-tag">{{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}</span>
               </div>
-            </diff-highlight-scope>
+            }
           </div>
+        </diff-highlight-scope>
 
-          <div class="version">
-            <h3>Current Value</h3>
-            <diff-highlight-scope [fields]="computedDiff()" cssPrefix="right">
-              <div class="card diff-card">
-                @for (row of liveRows(); track row.path) {
-                  <div class="field-row" [diffHighlightField]="row.path" [attr.data-live-right]="row.path">
-                    <div class="field-header">
-                      <span class="label">{{ row.label }}</span>
-                      <span class="field-path">{{ row.path }}</span>
-                      <span
-                        class="diff-tag"
-                        [class.changed]="row.type === 'changed'"
-                        [class.added]="row.type === 'added'"
-                        [class.deleted]="row.type === 'deleted'"
-                        [class.unchanged]="row.type === 'none'">
-                        {{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}
-                      </span>
-                    </div>
-                    <span class="value" [class.missing]="row.rightValue === 'Not present'">{{ row.rightValue }}</span>
-                  </div>
-                }
-              </div>
-            </diff-highlight-scope>
-          </div>
+        <div class="gap-note">
+          <strong>Current library gap:</strong> <code>computeDiff()</code> is path- and index-based. It does not detect semantic moves or renames inside arrays.
         </div>
       }
     </div>

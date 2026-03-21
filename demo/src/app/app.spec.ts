@@ -21,4 +21,45 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('ngx-diff-highlight Showcase');
   });
+
+  it('should use the library default highlight classes in the demo', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.diff-highlight')).toBeTruthy();
+    expect(compiled.querySelector('.left-changed')).toBeTruthy();
+    expect(compiled.querySelector('.left-deleted')).toBeTruthy();
+    expect(compiled.querySelector('.right-added')).toBeTruthy();
+  });
+
+  it('should highlight form array inputs', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-role-path="roles[0]"].diff-highlight')).toBeTruthy();
+    expect(compiled.querySelector('[data-role-path="roles[1]"].diff-highlight')).toBeTruthy();
+  });
+
+  it('should show the current computeDiff gap note and handle invalid json', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    let compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Current library gap:');
+    expect(compiled.querySelector('[data-live-row="roles[1]"]')).toBeTruthy();
+
+    app.newJson.set('{');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-testid="json-error"]')).toBeTruthy();
+  });
 });

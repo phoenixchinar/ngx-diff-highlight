@@ -5,10 +5,9 @@ import { DiffHighlightModule, DiffHighlightInput, computeDiff, DiffType } from '
 
 interface ComparisonRow {
   path: string;
-  label: string;
   leftValue: string;
   rightValue: string;
-  type: DiffType | 'none';
+  type: DiffType;
 }
 
 interface ParsedJsonState {
@@ -68,11 +67,11 @@ export class App {
         newValue: JSON.parse(this.newJson()),
         error: null,
       };
-    } catch (error) {
+    } catch {
       return {
         oldValue: null,
         newValue: null,
-        error: error instanceof Error ? error.message : 'Invalid JSON',
+        error: 'Invalid JSON',
       };
     }
   });
@@ -91,29 +90,6 @@ export class App {
       return [];
     }
     return this.buildComparisonRows(state.oldValue, state.newValue, this.computedDiff());
-  });
-
-  readonly liveSummary = computed(() => {
-    const summary = {
-      changed: 0,
-      added: 0,
-      deleted: 0,
-      unchanged: 0,
-    };
-
-    this.liveRows().forEach((row) => {
-      if (row.type === 'changed') {
-        summary.changed += 1;
-      } else if (row.type === 'added') {
-        summary.added += 1;
-      } else if (row.type === 'deleted') {
-        summary.deleted += 1;
-      } else {
-        summary.unchanged += 1;
-      }
-    });
-
-    return summary;
   });
 
   constructor() {
@@ -161,9 +137,14 @@ export class App {
   }
 
   private buildComparisonRows(left: unknown, right: unknown, diffs: DiffHighlightInput[]): ComparisonRow[] {
-    const diffMap = new Map(
-      diffs.map((diff) => typeof diff === 'string' ? { path: diff, type: 'none' as const } : { path: diff.path, type: diff.type ?? 'none' })
+    const diffMap = new Map<string, DiffType>(
+      diffs.map((diff) => {
+        const path = typeof diff === 'string' ? diff : diff.path;
+        const type = typeof diff === 'string' ? 'none' : (diff.type || 'none');
+        return [path, type];
+      })
     );
+    
     const allPaths = Array.from(new Set([
       ...this.collectLeafPaths(left),
       ...this.collectLeafPaths(right),
@@ -171,7 +152,6 @@ export class App {
 
     return allPaths.map((path) => ({
       path,
-      label: this.toLabel(path),
       leftValue: this.formatValue(this.readPath(left, path)),
       rightValue: this.formatValue(this.readPath(right, path)),
       type: diffMap.get(path) ?? 'none',
@@ -228,10 +208,5 @@ export class App {
       return value;
     }
     return JSON.stringify(value);
-  }
-
-  private toLabel(path: string): string {
-    const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
-    return parts[parts.length - 1] ?? path;
   }
 }
