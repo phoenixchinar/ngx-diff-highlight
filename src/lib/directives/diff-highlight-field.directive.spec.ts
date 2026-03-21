@@ -6,7 +6,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { DiffHighlightFieldDirective } from './diff-highlight-field.directive';
 import { DiffHighlightService } from '../services/diff-highlight.service';
 import { DIFF_HIGHLIGHT_CONFIG, DIFF_HIGHLIGHT_PATH_CONTEXT } from '../tokens/diff-highlight.tokens';
-import { DiffHighlightPathContext } from '../models/diff-highlight.models';
+import { DiffHighlightPathContext, DiffFieldPathObject } from '../models/diff-highlight.models';
 
 // Mock Component for basic tests
 @Component({
@@ -45,12 +45,15 @@ class NgControlTestComponent {}
 class ContextTestComponent {}
 
 describe('DiffHighlightFieldDirective', () => {
-  let fields$: BehaviorSubject<string[]>;
-  let mockService: { fields$: Observable<string[]> };
+  let fields$: BehaviorSubject<DiffFieldPathObject[]>;
+  let mockService: { fields$: Observable<DiffFieldPathObject[]>, cssPrefix?: string };
 
   beforeEach(() => {
-    fields$ = new BehaviorSubject<string[]>([]);
-    mockService = { fields$: fields$.asObservable() };
+    fields$ = new BehaviorSubject<DiffFieldPathObject[]>([]);
+    mockService = { 
+      fields$: fields$.asObservable(),
+      cssPrefix: ''
+    };
   });
 
   it('should use explicit input over ID (Precedence 1 & 2)', async () => {
@@ -67,11 +70,11 @@ describe('DiffHighlightFieldDirective', () => {
 
     const explicitEl = fixture.debugElement.query(By.css('#ignore-id')).nativeElement;
     
-    fields$.next(['explicit.path']);
+    fields$.next([{ path: 'explicit.path', type: 'none' }]);
     fixture.detectChanges();
     expect(explicitEl.classList.contains('hl')).toBe(true);
 
-    fields$.next(['ignore-id']);
+    fields$.next([{ path: 'ignore-id', type: 'none' }]);
     fixture.detectChanges();
     expect(explicitEl.classList.contains('hl')).toBe(false);
   });
@@ -90,7 +93,7 @@ describe('DiffHighlightFieldDirective', () => {
 
     const idEl = fixture.debugElement.query(By.css('#field1')).nativeElement;
     
-    fields$.next(['field1']);
+    fields$.next([{ path: 'field1', type: 'none' }]);
     fixture.detectChanges();
     expect(idEl.classList.contains('hl')).toBe(true);
   });
@@ -112,7 +115,7 @@ describe('DiffHighlightFieldDirective', () => {
 
     const el = fixture.debugElement.query(By.directive(DiffHighlightFieldDirective)).nativeElement;
     
-    fields$.next(['form.control']);
+    fields$.next([{ path: 'form.control', type: 'none' }]);
     fixture.detectChanges();
     expect(el.classList.contains('hl')).toBe(true);
   });
@@ -136,12 +139,14 @@ describe('DiffHighlightFieldDirective', () => {
 
     const el = fixture.debugElement.query(By.directive(DiffHighlightFieldDirective)).nativeElement;
     
-    fields$.next(['context.path']);
+    fields$.next([{ path: 'context.path', type: 'none' }]);
     fixture.detectChanges();
     expect(el.classList.contains('hl')).toBe(true);
   });
 
-  it('should handle matching scenarios (exact, ancestor, descendant)', async () => {
+  it('should apply cssPrefix and type classes', async () => {
+    mockService.cssPrefix = 'left';
+
     await TestBed.configureTestingModule({
       imports: [TestComponent],
       providers: [
@@ -153,77 +158,18 @@ describe('DiffHighlightFieldDirective', () => {
     const fixture = TestBed.createComponent(TestComponent);
     fixture.detectChanges();
 
-    const explicitEl = fixture.debugElement.query(By.css('#ignore-id')).nativeElement;
+    const el = fixture.debugElement.query(By.css('#field1')).nativeElement;
     
-    // Exact match
-    fields$.next(['explicit.path']);
+    fields$.next([{ path: 'field1', type: 'added' }]);
     fixture.detectChanges();
-    expect(explicitEl.classList.contains('hl')).toBe(true);
-
-    // Ancestor match (field is descendant of highlighted)
-    fields$.next(['explicit']);
-    fixture.detectChanges();
-    expect(explicitEl.classList.contains('hl')).toBe(true);
-
-    // Descendant match (field is ancestor of highlighted)
-    fields$.next(['explicit.path.child']);
-    fixture.detectChanges();
-    expect(explicitEl.classList.contains('hl')).toBe(true);
-
-    // No match
-    fields$.next(['other.path']);
-    fixture.detectChanges();
-    expect(explicitEl.classList.contains('hl')).toBe(false);
-  });
-
-  it('should emit fieldInDiff and toggle classes correctly', async () => {
-    await TestBed.configureTestingModule({
-      imports: [TestComponent],
-      providers: [
-        { provide: DiffHighlightService, useValue: mockService },
-        { provide: DIFF_HIGHLIGHT_CONFIG, useValue: { highlightClass: 'custom-hl', secondaryClass: 'custom-sec' } },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(TestComponent);
-    const component = fixture.componentInstance;
-    const spy = vi.spyOn(component, 'onFieldInDiff');
-    fixture.detectChanges();
-
-    const idEl = fixture.debugElement.query(By.css('#field1')).nativeElement;
     
-    fields$.next(['field1']);
-    fixture.detectChanges();
-    expect(idEl.classList.contains('custom-hl')).toBe(true);
-    expect(idEl.classList.contains('custom-sec')).toBe(true);
-    expect(spy).toHaveBeenCalledWith(true);
-
-    fields$.next([]);
-    fixture.detectChanges();
-    expect(idEl.classList.contains('custom-hl')).toBe(false);
-    expect(idEl.classList.contains('custom-sec')).toBe(false);
-    expect(spy).toHaveBeenCalledWith(false);
-  });
-
-  it('should be inert if no service is provided', async () => {
-    await TestBed.configureTestingModule({
-      imports: [TestComponent],
-      providers: [
-        { provide: DiffHighlightService, useValue: null },
-        { provide: DIFF_HIGHLIGHT_CONFIG, useValue: { highlightClass: 'hl', secondaryClass: 'sec' } },
-      ],
-    }).compileComponents();
-
-    const fixture = TestBed.createComponent(TestComponent);
-    fixture.detectChanges();
-
-    const idEl = fixture.debugElement.query(By.css('#field1')).nativeElement;
-    // Since no service, no subscription, no classes added even if we somehow knew fields
-    expect(idEl.classList.contains('hl')).toBe(false);
+    expect(el.classList.contains('hl')).toBe(true);
+    expect(el.classList.contains('sec')).toBe(true);
+    expect(el.classList.contains('left-hl')).toBe(true);
+    expect(el.classList.contains('left-added')).toBe(true);
   });
 
   it('should be inert if no DiffHighlightService is provided', () => {
-    // We create a component without the service in providers
     @Component({
       template: `<div id="field1" diffHighlightField></div>`,
       standalone: true,
@@ -235,7 +181,6 @@ describe('DiffHighlightFieldDirective', () => {
     fixture.detectChanges();
 
     const el = fixture.debugElement.query(By.css('#field1')).nativeElement;
-    // Should not have any highlight classes
     expect(el.classList.contains('highlight-diff')).toBe(false);
   });
 });

@@ -15,6 +15,7 @@ import { takeUntil } from 'rxjs/operators';
 import { DiffHighlightService } from '../services/diff-highlight.service';
 import { DIFF_HIGHLIGHT_PATH_CONTEXT, DIFF_HIGHLIGHT_CONFIG } from '../tokens/diff-highlight.tokens';
 import { pathsMatch, normalizeDiffPath } from '../utils/path-utils';
+import { DiffType, DiffHighlightMatchEvent } from '../models/diff-highlight.models';
 
 @Directive({
   selector: '[diffHighlightField], [appHighlightField]',
@@ -35,9 +36,13 @@ export class DiffHighlightFieldDirective implements OnInit, OnDestroy {
 
   /**
    * Emits whenever the highlighted fields list updates.
-   * Value is true if the resolved path is considered "in the diff".
    */
   @Output() fieldInDiff = new EventEmitter<boolean>();
+
+  /**
+   * Emits detailed match information including diff type.
+   */
+  @Output() highlightMatch = new EventEmitter<DiffHighlightMatchEvent>();
 
   private readonly destroy$ = new Subject<void>();
 
@@ -48,6 +53,8 @@ export class DiffHighlightFieldDirective implements OnInit, OnDestroy {
   private pathContext = inject(DIFF_HIGHLIGHT_PATH_CONTEXT, { optional: true });
   private ngControl = inject(NgControl, { optional: true });
 
+  private lastAppliedClasses: string[] = [];
+
   ngOnInit(): void {
     if (!this.service) {
       return;
@@ -56,14 +63,18 @@ export class DiffHighlightFieldDirective implements OnInit, OnDestroy {
     this.service.fields$.pipe(takeUntil(this.destroy$)).subscribe((fields) => {
       const path = this.resolvePath();
       if (!path) {
-        this.updateState(false);
+        this.updateState(false, 'none', null);
         return;
       }
 
       const matcher = this.config.pathMatcher || pathsMatch;
-      const isMatch = fields.some((f) => matcher(path, f));
+      const matchingField = fields.find((f) => matcher(path, f.path));
 
-      this.updateState(isMatch);
+      if (matchingField) {
+        this.updateState(true, matchingField.type || 'none', path);
+      } else {
+        this.updateState(false, 'none', path);
+      }
     });
   }
 
@@ -98,19 +109,32 @@ export class DiffHighlightFieldDirective implements OnInit, OnDestroy {
   /**
    * Toggles highlight classes and emits match status.
    */
-  private updateState(isMatch: boolean): void {
-    const highlightClass = this.config.highlightClass || 'highlight-diff';
-    const secondaryClass = this.config.secondaryClass || 'draggable-field';
+  private updateState(isMatch: boolean, type: DiffType, path: string | null): void {
+    // Remove old classes
+    this.lastAppliedClasses.forEach(cls => this.renderer.removeClass(this.el.nativeElement, cls));
+    this.lastAppliedClasses = [];
 
     if (isMatch) {
-      this.renderer.addClass(this.el.nativeElement, highlightClass);
-      this.renderer.addClass(this.el.nativeElement, secondaryClass);
-    } else {
-      this.renderer.removeClass(this.el.nativeElement, highlightClass);
-      this.renderer.removeClass(this.el.nativeElement, secondaryClass);
+      const highlightClass = this.config.highlightClass || 'highlight-diff';
+      const secondaryClass = this.config.secondaryClass || 'draggable-field';
+      const cssPrefix = this.service?.cssPrefix;
+      const prefix = cssPrefix ? `${cssPrefix}-` : '';
+
+      const classesToAdd = [
+        highlightClass,
+        secondaryClass,
+        `${prefix}${highlightClass}`,
+        `${prefix}${type}`
+      ].filter(cls => !!cls && cls !== '-');
+
+      classesToAdd.forEach(cls => {
+        this.renderer.addClass(this.el.nativeElement, cls);
+        this.lastAppliedClasses.push(cls);
+      });
     }
 
     this.fieldInDiff.emit(isMatch);
+    this.highlightMatch.emit({ path, highlighted: isMatch, type });
   }
 
   ngOnDestroy(): void {

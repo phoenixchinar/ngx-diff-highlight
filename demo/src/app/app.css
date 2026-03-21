@@ -104,6 +104,37 @@ h1 {
   min-height: 100px;
 }
 
+.side-by-side {
+  display: flex;
+  gap: 20px;
+}
+
+.version {
+  flex: 1;
+}
+
+/* Prefix specific styling */
+.left-changed {
+  background-color: #ffe0b2;
+  border-left: 4px solid #f57c00;
+}
+
+.right-changed {
+  background-color: #e3f2fd;
+  border-left: 4px solid #1976d2;
+}
+
+.right-added {
+  background-color: #e8f5e9;
+  border-left: 4px solid #388e3c;
+}
+
+.left-deleted {
+  background-color: #ffebee;
+  border-left: 4px solid #d32f2f;
+  text-decoration: line-through;
+}
+
 /* Scenario 4: Diff Representation */
 .diff-card {
   display: flex;

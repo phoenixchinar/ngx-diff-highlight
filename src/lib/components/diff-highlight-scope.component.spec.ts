@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { DiffHighlightScopeComponent, DiffHighlightScopeDirective } from './diff-highlight-scope.component';
 import { DiffHighlightService } from '../services/diff-highlight.service';
+import { DiffFieldPath, DiffFieldPathObject } from '../models/diff-highlight.models';
 
 @Component({
   selector: 'app-child-component',
@@ -44,9 +45,9 @@ describe('DiffHighlightScopeComponent', () => {
     });
     await fixture.whenStable();
 
-    let fields: string[] = [];
-    const sub = service.fields$.subscribe((f: string[]) => (fields = f));
-    expect(fields).toEqual(['user.name']);
+    let fields: DiffFieldPathObject[] = [];
+    const sub = service.fields$.subscribe((f: DiffFieldPathObject[]) => (fields = f));
+    expect(fields).toEqual([{ path: 'user.name', type: 'none' }]);
 
     component.fields = ['other.path'];
     component.ngOnChanges({
@@ -58,7 +59,7 @@ describe('DiffHighlightScopeComponent', () => {
       },
     });
     await fixture.whenStable();
-    expect(fields).toEqual(['other.path']);
+    expect(fields).toEqual([{ path: 'other.path', type: 'none' }]);
     sub.unsubscribe();
   });
 
@@ -85,13 +86,13 @@ describe('DiffHighlightScopeComponent', () => {
 
     expect(serviceA).not.toBe(serviceB);
 
-    let fieldsA: string[] = [];
-    const subA = serviceA.fields$.subscribe((f: string[]) => (fieldsA = f));
-    expect(fieldsA).toEqual(['a']);
+    let fieldsA: DiffFieldPathObject[] = [];
+    const subA = serviceA.fields$.subscribe((f: DiffFieldPathObject[]) => (fieldsA = f));
+    expect(fieldsA).toEqual([{ path: 'a', type: 'none' }]);
 
-    let fieldsB: string[] = [];
-    const subB = serviceB.fields$.subscribe((f: string[]) => (fieldsB = f));
-    expect(fieldsB).toEqual(['b']);
+    let fieldsB: DiffFieldPathObject[] = [];
+    const subB = serviceB.fields$.subscribe((f: DiffFieldPathObject[]) => (fieldsB = f));
+    expect(fieldsB).toEqual([{ path: 'b', type: 'none' }]);
     
     subA.unsubscribe();
     subB.unsubscribe();
@@ -109,7 +110,7 @@ describe('DiffHighlightScopeDirective', () => {
     imports: [DiffHighlightScopeDirective, ChildComponent],
   })
   class HostComponent {
-    fields: string[] | null | undefined = ['initial'];
+    fields: DiffFieldPath[] | null | undefined = ['initial'];
   }
 
   let fixture: ComponentFixture<HostComponent>;
@@ -130,9 +131,9 @@ describe('DiffHighlightScopeDirective', () => {
     const child = fixture.debugElement.query(By.directive(ChildComponent)).componentInstance as ChildComponent;
     expect(child.service).toBeTruthy();
 
-    let fields: string[] = [];
-    const sub = child.service.fields$.subscribe((f: string[]) => (fields = f));
-    expect(fields).toEqual(['initial']);
+    let fields: DiffFieldPathObject[] = [];
+    const sub = child.service.fields$.subscribe((f: DiffFieldPathObject[]) => (fields = f));
+    expect(fields).toEqual([{ path: 'initial', type: 'none' }]);
     sub.unsubscribe();
   });
 
@@ -145,9 +146,9 @@ describe('DiffHighlightScopeDirective', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    let fields: string[] = [];
-    const sub = child.service.fields$.subscribe((f: string[]) => (fields = f));
-    expect(fields).toEqual(['updated']);
+    let fields: DiffFieldPathObject[] = [];
+    const sub = child.service.fields$.subscribe((f: DiffFieldPathObject[]) => (fields = f));
+    expect(fields).toEqual([{ path: 'updated', type: 'none' }]);
     sub.unsubscribe();
   });
 
@@ -176,13 +177,13 @@ describe('DiffHighlightScopeDirective', () => {
 
     expect(service1).not.toBe(service2);
 
-    let fields1: string[] = [];
-    const sub1 = service1.fields$.subscribe((f: string[]) => (fields1 = f));
-    expect(fields1).toEqual(['parent']);
+    let fields1: DiffFieldPathObject[] = [];
+    const sub1 = service1.fields$.subscribe((f: DiffFieldPathObject[]) => (fields1 = f));
+    expect(fields1).toEqual([{ path: 'parent', type: 'none' }]);
 
-    let fields2: string[] = [];
-    const sub2 = service2.fields$.subscribe((f: string[]) => (fields2 = f));
-    expect(fields2).toEqual(['child']);
+    let fields2: DiffFieldPathObject[] = [];
+    const sub2 = service2.fields$.subscribe((f: DiffFieldPathObject[]) => (fields2 = f));
+    expect(fields2).toEqual([{ path: 'child', type: 'none' }]);
     
     sub1.unsubscribe();
     sub2.unsubscribe();

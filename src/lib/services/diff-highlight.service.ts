@@ -1,5 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { DiffHighlightInput, DiffFieldPathObject } from '../models/diff-highlight.models';
 import { normalizeDiffPath } from '../utils/path-utils';
 
 /**
@@ -8,21 +9,37 @@ import { normalizeDiffPath } from '../utils/path-utils';
  */
 @Injectable()
 export class DiffHighlightService implements OnDestroy {
-  private readonly _fields$ = new BehaviorSubject<string[]>([]);
+  private readonly _fields$ = new BehaviorSubject<DiffFieldPathObject[]>([]);
   public readonly fields$ = this._fields$.asObservable();
+
+  /**
+   * Optional CSS prefix for this scope.
+   */
+  public cssPrefix: string | null | undefined = '';
 
   /**
    * Replaces current highlighted fields with a new set.
    * Normalizes each path and filters out empty results.
    */
-  setFields(fields: string[] | null | undefined): void {
+  setFields(fields: DiffHighlightInput[] | null | undefined): void {
     const normalized = (fields ?? [])
-      .map((f) => normalizeDiffPath(f))
-      .filter((f): f is string => !!f);
+      .map((f) => {
+        const path = typeof f === 'string' ? f : f.path;
+        const type = typeof f === 'string' ? 'none' : f.type || 'none';
+        const normPath = normalizeDiffPath(path);
+        return normPath ? { path: normPath, type } : null;
+      })
+      .filter((f) => f !== null) as DiffFieldPathObject[];
 
-    // Using a Set to ensure uniqueness after normalization
-    const unique = [...new Set(normalized)];
-    this._fields$.next(unique);
+    // Ensure uniqueness by path
+    const uniqueMap = new Map<string, DiffFieldPathObject>();
+    normalized.forEach(item => {
+      if (item) {
+        uniqueMap.set(item.path, item);
+      }
+    });
+    
+    this._fields$.next(Array.from(uniqueMap.values()));
   }
 
   /**
@@ -36,13 +53,18 @@ export class DiffHighlightService implements OnDestroy {
    * Adds a single field to the highlighted set if not already present.
    * Path is normalized before addition.
    */
-  addField(path: string | null | undefined): void {
-    const normalized = normalizeDiffPath(path);
-    if (!normalized) return;
+  addField(field: DiffHighlightInput | null | undefined): void {
+    if (!field) return;
+
+    const path = typeof field === 'string' ? field : field.path;
+    const type = typeof field === 'string' ? 'none' : field.type || 'none';
+    const normPath = normalizeDiffPath(path);
+
+    if (!normPath) return;
 
     const current = this._fields$.value;
-    if (!current.includes(normalized)) {
-      this._fields$.next([...current, normalized]);
+    if (!current.some(f => f.path === normPath)) {
+      this._fields$.next([...current, { path: normPath, type }]);
     }
   }
 
@@ -55,7 +77,7 @@ export class DiffHighlightService implements OnDestroy {
     if (!normalized) return;
 
     const current = this._fields$.value;
-    const filtered = current.filter((f) => f !== normalized);
+    const filtered = current.filter((f) => f.path !== normalized);
     if (filtered.length !== current.length) {
       this._fields$.next(filtered);
     }

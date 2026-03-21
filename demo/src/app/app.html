@@ -106,35 +106,49 @@
 
   <!-- Scenario 4: Visual Diff -->
   <section class="scenario">
-    <h2>4. Visual Diff Representation</h2>
-    <p>Demonstrates how to use the library to represent different types of changes (Added, Changed, Deleted).</p>
+    <h2>4. Visual Diff Representation & Prefixes</h2>
+    <p>Demonstrates granular diff types (Added, Changed, Deleted) and CSS prefixes for side-by-side comparison.</p>
 
-    <diff-highlight-scope [fields]="diffFields()">
-      <div class="card diff-card">
-        <div class="field-row" [diffHighlightField]="'user.firstName'">
-          <span class="label">First Name:</span>
-          <span class="value changed">John <span class="old-value">(was Jane)</span></span>
-          <span class="diff-tag changed">CHANGED</span>
-        </div>
-
-        <div class="field-row" [diffHighlightField]="'user.lastName'">
-          <span class="label">Last Name:</span>
-          <span class="value added">Doe <span class="new-tag">(New)</span></span>
-          <span class="diff-tag added">ADDED</span>
-        </div>
-
-        <div class="field-row" [diffHighlightField]="'user.bio'">
-          <span class="label">Bio:</span>
-          <span class="value deleted">REMOVED</span>
-          <span class="diff-tag deleted">DELETED</span>
-        </div>
-
-        <div class="field-row" [diffHighlightField]="'user.email'">
-          <span class="label">Email:</span>
-          <span class="value">john.doe@example.com</span>
-          <span class="diff-tag unchanged">UNCHANGED</span>
-        </div>
+    <div class="side-by-side">
+      <div class="version">
+        <h3>Left Version (cssPrefix="left")</h3>
+        <diff-highlight-scope [fields]="diffFields()" cssPrefix="left">
+          <div class="card diff-card">
+            <div class="field-row" [diffHighlightField]="'user.firstName'">
+              <span class="label">First Name:</span>
+              <span class="value">Jane</span>
+            </div>
+            <div class="field-row" [diffHighlightField]="'user.lastName'">
+              <span class="label">Last Name:</span>
+              <span class="value">Smith</span>
+            </div>
+            <div class="field-row" [diffHighlightField]="'user.bio'">
+              <span class="label">Bio:</span>
+              <span class="value">Original bio text.</span>
+            </div>
+          </div>
+        </diff-highlight-scope>
       </div>
-    </diff-highlight-scope>
+
+      <div class="version">
+        <h3>Right Version (cssPrefix="right")</h3>
+        <diff-highlight-scope [fields]="diffFields()" cssPrefix="right">
+          <div class="card diff-card">
+            <div class="field-row" [diffHighlightField]="'user.firstName'">
+              <span class="label">First Name:</span>
+              <span class="value">John</span>
+            </div>
+            <div class="field-row" [diffHighlightField]="'user.lastName'">
+              <span class="label">Last Name:</span>
+              <span class="value">Doe</span>
+            </div>
+            <div class="field-row" [diffHighlightField]="'user.bio'">
+              <span class="label">Bio:</span>
+              <span class="value">REMOVED</span>
+            </div>
+          </div>
+        </diff-highlight-scope>
+      </div>
+    </div>
   </section>
 </div>

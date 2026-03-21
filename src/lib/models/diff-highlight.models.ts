@@ -1,8 +1,25 @@
+export type DiffType = 'added' | 'deleted' | 'changed' | 'none';
+
+export interface DiffFieldPathObject {
+  path: string;
+  type?: DiffType;
+}
+
+/**
+ * A canonical field path string.
+ */
 export type DiffFieldPath = string;
 
+/**
+ * Input type for the scope component/directive.
+ * Can be simple strings or objects with type information.
+ */
+export type DiffHighlightInput = string | DiffFieldPathObject;
+
 export interface DiffHighlightMatchEvent {
-  path: DiffFieldPath | null;
+  path: string | null;
   highlighted: boolean;
+  type: DiffType;
 }
 
 export interface DiffHighlightConfig {
@@ -12,5 +29,5 @@ export interface DiffHighlightConfig {
 }
 
 export interface DiffHighlightPathContext {
-  getPath(): DiffFieldPath | null;
+  getPath(): string | null;
 }

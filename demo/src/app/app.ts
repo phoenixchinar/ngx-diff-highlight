@@ -1,7 +1,7 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
-import { DiffHighlightModule } from 'ngx-diff-highlight';
+import { DiffHighlightModule, DiffHighlightInput } from 'ngx-diff-highlight';
 
 @Component({
   selector: 'app-root',
@@ -15,19 +15,23 @@ export class App {
 
   // Scenario 1: Basic Detail View
   basicFieldsInput = signal('name, address.city');
-  basicFields = computed(() => this.basicFieldsInput().split(',').map(s => s.trim()).filter(s => !!s));
+  basicFields = computed<DiffHighlightInput[]>(() => this.basicFieldsInput().split(',').map(s => s.trim()).filter(s => !!s));
   
   // Scenario 2: Reactive Form
   form: FormGroup;
   formFieldsInput = signal('user.firstName, user.lastName, roles.0, roles.1');
-  formFields = computed(() => this.formFieldsInput().split(',').map(s => s.trim()).filter(s => !!s));
+  formFields = computed<DiffHighlightInput[]>(() => this.formFieldsInput().split(',').map(s => s.trim()).filter(s => !!s));
 
   // Scenario 3: Multiple Scopes
-  scope1Fields = signal(['title', 'description']);
-  scope2Fields = signal(['title', 'status']);
+  scope1Fields = signal<DiffHighlightInput[]>(['title', 'description']);
+  scope2Fields = signal<DiffHighlightInput[]>(['title', 'status']);
 
   // Scenario 4: Visual Diff (Added, Changed, Deleted)
-  diffFields = signal(['user.firstName', 'user.lastName', 'user.bio']);
+  diffFields = signal<DiffHighlightInput[]>([
+    { path: 'user.firstName', type: 'changed' },
+    { path: 'user.lastName', type: 'added' },
+    { path: 'user.bio', type: 'deleted' }
+  ]);
 
   constructor() {
     this.form = this.fb.group({

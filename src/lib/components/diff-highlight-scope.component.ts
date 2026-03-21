@@ -1,5 +1,6 @@
 import { Component, Directive, Input, OnChanges, SimpleChanges, inject, ChangeDetectorRef } from '@angular/core';
 import { DiffHighlightService } from '../services/diff-highlight.service';
+import { DiffHighlightInput } from '../models/diff-highlight.models';
 
 /**
  * Component to provide a new DiffHighlightService instance to its children.
@@ -16,12 +17,20 @@ export class DiffHighlightScopeComponent implements OnChanges {
   /**
    * Fields to highlight within this scope.
    */
-  @Input() fields: string[] | null | undefined;
+  @Input() fields: DiffHighlightInput[] | null | undefined;
+
+  /**
+   * Optional CSS prefix to apply to highlight classes (e.g. 'left', 'right').
+   */
+  @Input() cssPrefix: string | null | undefined;
 
   private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['fields']) {
+    if (changes['cssPrefix']) {
+      this.service.cssPrefix = this.cssPrefix;
+    }
+    if (changes['fields'] || changes['cssPrefix']) {
       // Defer to next microtask to avoid ExpressionChangedAfterItHasBeenCheckedError
       Promise.resolve().then(() => {
         this.service.setFields(this.fields);
@@ -45,12 +54,20 @@ export class DiffHighlightScopeDirective implements OnChanges {
   /**
    * Fields to highlight within this scope.
    */
-  @Input('diffHighlightScope') fields: string[] | null | undefined;
+  @Input('diffHighlightScope') fields: DiffHighlightInput[] | null | undefined;
+
+  /**
+   * Optional CSS prefix to apply to highlight classes.
+   */
+  @Input() cssPrefix: string | null | undefined;
 
   private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['fields']) {
+    if (changes['cssPrefix']) {
+      this.service.cssPrefix = this.cssPrefix;
+    }
+    if (changes['fields'] || changes['cssPrefix']) {
       // Defer to next microtask to avoid ExpressionChangedAfterItHasBeenCheckedError
       Promise.resolve().then(() => {
         this.service.setFields(this.fields);

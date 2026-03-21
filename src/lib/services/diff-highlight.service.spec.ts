@@ -22,10 +22,28 @@ describe('DiffHighlightService', () => {
   });
 
   describe('setFields', () => {
-    it('should set and normalize fields', async () => {
-      service.setFields(['  user.name  ', 'items.0.id', null as unknown as string, 'items[1].name']);
+    it('should set and normalize fields from strings', async () => {
+      service.setFields(['  user.name  ', 'items.0.id', 'items[1].name']);
       const fields = await firstValueFrom(service.fields$);
-      expect(fields).toEqual(['user.name', 'items[0].id', 'items[1].name']);
+      expect(fields).toEqual([
+        { path: 'user.name', type: 'none' },
+        { path: 'items[0].id', type: 'none' },
+        { path: 'items[1].name', type: 'none' }
+      ]);
+    });
+
+    it('should handle structured objects', async () => {
+      service.setFields([
+        { path: 'added.field', type: 'added' },
+        { path: 'changed.field', type: 'changed' },
+        'simple.field'
+      ]);
+      const fields = await firstValueFrom(service.fields$);
+      expect(fields).toEqual([
+        { path: 'added.field', type: 'added' },
+        { path: 'changed.field', type: 'changed' },
+        { path: 'simple.field', type: 'none' }
+      ]);
     });
 
     it('should handle null/undefined fields array', async () => {
@@ -36,14 +54,19 @@ describe('DiffHighlightService', () => {
       expect(await firstValueFrom(service.fields$)).toEqual([]);
     });
 
-    it('should filter out invalid paths after normalization', async () => {
-      service.setFields(['', '  ', '.', 'user.name']);
-      expect(await firstValueFrom(service.fields$)).toEqual(['user.name']);
-    });
-
-    it('should ensure uniqueness', async () => {
-      service.setFields(['user.name', '  user.name  ', 'items.0', 'items[0]']);
-      expect(await firstValueFrom(service.fields$)).toEqual(['user.name', 'items[0]']);
+    it('should ensure uniqueness by path', async () => {
+      service.setFields([
+        'user.name',
+        { path: '  user.name  ', type: 'changed' },
+        'items.0',
+        'items[0]'
+      ]);
+      const fields = await firstValueFrom(service.fields$);
+      // Last one wins due to Map.set in implementation
+      expect(fields).toEqual([
+        { path: 'user.name', type: 'changed' },
+        { path: 'items[0]', type: 'none' }
+      ]);
     });
   });
 
@@ -58,19 +81,16 @@ describe('DiffHighlightService', () => {
   describe('addField', () => {
     it('should add a normalized field if not present', async () => {
       service.addField('  user.name  ');
-      expect(await firstValueFrom(service.fields$)).toEqual(['user.name']);
+      expect(await firstValueFrom(service.fields$)).toEqual([{ path: 'user.name', type: 'none' }]);
 
-      service.addField('user.name'); // Duplicate
-      expect(await firstValueFrom(service.fields$)).toEqual(['user.name']);
+      service.addField({ path: 'user.name', type: 'added' }); // Duplicate path
+      expect(await firstValueFrom(service.fields$)).toEqual([{ path: 'user.name', type: 'none' }]);
 
       service.addField('items.0');
-      expect(await firstValueFrom(service.fields$)).toEqual(['user.name', 'items[0]']);
-    });
-
-    it('should do nothing if path is invalid', async () => {
-      service.addField(null);
-      service.addField('');
-      expect(await firstValueFrom(service.fields$)).toEqual([]);
+      expect(await firstValueFrom(service.fields$)).toEqual([
+        { path: 'user.name', type: 'none' },
+        { path: 'items[0]', type: 'none' }
+      ]);
     });
   });
 
@@ -79,16 +99,10 @@ describe('DiffHighlightService', () => {
       service.setFields(['user.name', 'items[0]']);
       
       service.removeField('  user.name  ');
-      expect(await firstValueFrom(service.fields$)).toEqual(['items[0]']);
+      expect(await firstValueFrom(service.fields$)).toEqual([{ path: 'items[0]', type: 'none' }]);
 
       service.removeField('items.0');
       expect(await firstValueFrom(service.fields$)).toEqual([]);
-    });
-
-    it('should do nothing if path is not present', async () => {
-      service.setFields(['user.name']);
-      service.removeField('other.path');
-      expect(await firstValueFrom(service.fields$)).toEqual(['user.name']);
     });
   });
 

@@ -1,14 +1,16 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule, FormGroup, FormArray, FormControl } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DiffHighlightModule } from './diff-highlight.module';
 import { provideDiffHighlightConfig } from './providers';
+import { DiffHighlightInput } from './models/diff-highlight.models';
 
 // Scenario 1: Nested FormArray
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, DiffHighlightModule],
+  imports: [CommonModule, ReactiveFormsModule, DiffHighlightModule],
   template: `
     <div [diffHighlightScope]="diffFields">
       <form [formGroup]="form">
@@ -24,7 +26,7 @@ import { provideDiffHighlightConfig } from './providers';
   `
 })
 class FormArrayTestComponent {
-  diffFields: string[] = [];
+  diffFields: DiffHighlightInput[] = [];
   form = new FormGroup({
     items: new FormArray([
       new FormGroup({ name: new FormControl('item 0') }),
@@ -48,8 +50,8 @@ class FormArrayTestComponent {
   `
 })
 class ScopeIsolationTestComponent {
-  scopeAFields: string[] = [];
-  scopeBFields: string[] = [];
+  scopeAFields: DiffHighlightInput[] = [];
+  scopeBFields: DiffHighlightInput[] = [];
 }
 
 // Scenario 3: Nested Scope
@@ -66,8 +68,8 @@ class ScopeIsolationTestComponent {
   `
 })
 class NestedScopeTestComponent {
-  parentFields: string[] = ['sharedField'];
-  childFields: string[] = [];
+  parentFields: DiffHighlightInput[] = ['sharedField'];
+  childFields: DiffHighlightInput[] = [];
 }
 
 // Scenario 4: Compatibility selectors
@@ -87,7 +89,7 @@ class NestedScopeTestComponent {
   `
 })
 class CompatibilityTestComponent {
-  fields: string[] = [];
+  fields: DiffHighlightInput[] = [];
 }
 
 describe('DiffHighlight Integration', () => {
