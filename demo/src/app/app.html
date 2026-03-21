@@ -107,7 +107,7 @@
   <!-- Scenario 4: Visual Diff -->
   <section class="scenario">
     <h2>4. Visual Diff Representation & Prefixes</h2>
-    <p>Demonstrates granular diff types (Added, Changed, Deleted) and CSS prefixes for side-by-side comparison.</p>
+    <p>Using <code>computeDiff()</code> to highlight changes between two versions of the same component.</p>
 
     <div class="side-by-side">
       <div class="version">
@@ -117,14 +117,18 @@
             <div class="field-row" [diffHighlightField]="'user.firstName'">
               <span class="label">First Name:</span>
               <span class="value">Jane</span>
+              <span class="diff-tag">CHANGED</span>
             </div>
-            <div class="field-row" [diffHighlightField]="'user.lastName'">
-              <span class="label">Last Name:</span>
-              <span class="value">Smith</span>
-            </div>
+            <!-- Bio exists in Left but deleted in Right -->
             <div class="field-row" [diffHighlightField]="'user.bio'">
               <span class="label">Bio:</span>
               <span class="value">Original bio text.</span>
+              <span class="diff-tag">DELETED</span>
+            </div>
+            <!-- Placeholder for alignment -->
+            <div class="field-row empty">
+              <span class="label">&nbsp;</span>
+              <span class="value">&nbsp;</span>
             </div>
           </div>
         </diff-highlight-scope>
@@ -137,14 +141,18 @@
             <div class="field-row" [diffHighlightField]="'user.firstName'">
               <span class="label">First Name:</span>
               <span class="value">John</span>
+              <span class="diff-tag">CHANGED</span>
             </div>
+            <!-- Bio is deleted, so we don't show it here (or show empty) -->
+            <div class="field-row empty">
+              <span class="label">&nbsp;</span>
+              <span class="value">&nbsp;</span>
+            </div>
+            <!-- Last Name is added in Right -->
             <div class="field-row" [diffHighlightField]="'user.lastName'">
               <span class="label">Last Name:</span>
               <span class="value">Doe</span>
-            </div>
-            <div class="field-row" [diffHighlightField]="'user.bio'">
-              <span class="label">Bio:</span>
-              <span class="value">REMOVED</span>
+              <span class="diff-tag">ADDED</span>
             </div>
           </div>
         </diff-highlight-scope>

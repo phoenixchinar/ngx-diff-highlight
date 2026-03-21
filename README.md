@@ -70,39 +70,48 @@ export class AppComponent {}
 
 Check out the [Live Demo Showcase](https://phoenixchinar.github.io/ngx-diff-highlight/) to see the library in action.
 
-### Visual Diff Example
+### Visual Diff & side-by-side Example
 
-You can use the library to represent different types of changes by applying custom styles to the highlighted elements.
+You can use `computeDiff()` to automatically find differences between two objects and highlight them in a side-by-side view using the `cssPrefix` feature.
+
+```ts
+// Component logic
+const leftObj = { user: { name: 'Jane', bio: 'Text' } };
+const rightObj = { user: { name: 'John', lastName: 'Doe' } };
+
+// Computes: [{path: 'user.name', type: 'changed'}, {path: 'user.bio', type: 'deleted'}, {path: 'user.lastName', type: 'added'}]
+this.diffs = computeDiff(leftObj, rightObj);
+```
 
 ```html
-<diff-highlight-scope [fields]="['user.name', 'user.email', 'user.bio']">
-  <div class="profile-card">
-    <!-- Changed Field -->
-    <div [diffHighlightField]="'user.name'" class="field-row">
-      <span class="label">Name:</span>
-      <span class="value changed">John Doe <span class="old">(was Jane)</span></span>
-    </div>
+<div class="comparison-container">
+  <!-- Left Version -->
+  <diff-highlight-scope [fields]="diffs" cssPrefix="left">
+    <div [diffHighlightField]="'user.name'">Name: Jane</div>
+    <div [diffHighlightField]="'user.bio'">Bio: Text</div>
+  </diff-highlight-scope>
 
-    <!-- Added Field -->
-    <div [diffHighlightField]="'user.email'" class="field-row">
-      <span class="label">Email:</span>
-      <span class="value added">john@example.com <span class="tag">New!</span></span>
-    </div>
-
-    <!-- Deleted Field (In a diff view, you might show what was removed) -->
-    <div [diffHighlightField]="'user.bio'" class="field-row">
-      <span class="label">Bio:</span>
-      <span class="value deleted">REMOVED</span>
-    </div>
-  </div>
-</diff-highlight-scope>
+  <!-- Right Version -->
+  <diff-highlight-scope [fields]="diffs" cssPrefix="right">
+    <div [diffHighlightField]="'user.name'">Name: John</div>
+    <div [diffHighlightField]="'user.lastName'">Last Name: Doe</div>
+  </diff-highlight-scope>
+</div>
 ```
 
 Corresponding CSS:
 ```css
-.field-row.highlight-diff .value.changed { color: #856404; }
-.field-row.highlight-diff .value.added   { color: #155724; font-weight: bold; }
-.field-row.highlight-diff .value.deleted { color: #721c24; text-decoration: line-through; }
+/* Styling for 'changed' fields in the left scope */
+.left-changed { background-color: #ffe0b2; border-left: 4px solid #f57c00; }
+
+/* Styling for 'changed' fields in the right scope */
+.right-changed { background-color: #e3f2fd; border-left: 4px solid #1976d2; }
+
+/* Styling for 'added' fields in the right scope */
+.right-added   { background-color: #e8f5e9; border-left: 4px solid #388e3c; }
+
+/* Styling for 'deleted' fields in the left scope */
+.left-deleted  { background-color: #ffebee; text-decoration: line-through; }
 ```
 
 ## Development

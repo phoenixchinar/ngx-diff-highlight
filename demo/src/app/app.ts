@@ -27,11 +27,19 @@ export class App {
   scope2Fields = signal<DiffHighlightInput[]>(['title', 'status']);
 
   // Scenario 4: Visual Diff (Added, Changed, Deleted)
-  diffFields = signal<DiffHighlightInput[]>([
-    { path: 'user.firstName', type: 'changed' },
-    { path: 'user.lastName', type: 'added' },
-    { path: 'user.bio', type: 'deleted' }
-  ]);
+  leftObj = {
+    user: {
+      firstName: 'Jane',
+      bio: 'Original bio text.'
+    }
+  };
+  rightObj = {
+    user: {
+      firstName: 'John',
+      lastName: 'Doe'
+    }
+  };
+  diffFields = computed(() => computeDiff(this.leftObj, this.rightObj));
 
   // Scenario 5: Real-time Object Diffing
   oldJson = signal('{\n  "name": "Jane",\n  "roles": ["Admin"]\n}');
