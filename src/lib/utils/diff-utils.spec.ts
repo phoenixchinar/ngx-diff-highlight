@@ -1,213 +1,350 @@
 import { describe, it, expect } from 'vitest';
-import { computeDiff } from './diff-utils';
+import { computeDiff, toHighlightPaths } from './diff-utils';
 
 describe('diff-utils', () => {
   describe('computeDiff', () => {
-    it('should return empty array for identical objects', () => {
-      const obj = { a: 1, b: { c: 2 } };
-      expect(computeDiff(obj, obj)).toEqual([]);
+    it('returns an empty result for identical objects', () => {
+      const result = computeDiff({ a: 1 }, { a: 1 });
+      expect(result.entries).toEqual([]);
+      expect(result.highlightFields).toEqual([]);
+      expect(toHighlightPaths(result)).toEqual([]);
     });
 
-    it('should detect simple changes', () => {
-      const oldObj = { a: 1, b: 2 };
-      const newObj = { a: 1, b: 3 };
-      expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'b', type: 'changed' }]);
+    it('detects simple field changes', () => {
+      const result = computeDiff({ a: 1, b: 2 }, { a: 1, b: 3 });
+      expect(result.entries).toEqual([
+        { kind: 'field', path: 'b', type: 'changed' },
+      ]);
+      expect(toHighlightPaths(result)).toEqual([
+        { path: 'b', type: 'changed' },
+      ]);
     });
 
-    it('should detect additions', () => {
-      const oldObj = { a: 1 };
-      const newObj = { a: 1, b: 2 };
-      expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'b', type: 'added' }]);
+    it('detects additions and deletions in objects', () => {
+      expect(computeDiff({ a: 1 }, { a: 1, b: 2 }).entries).toEqual([
+        { kind: 'field', path: 'b', type: 'added' },
+      ]);
+
+      expect(computeDiff({ a: 1, b: 2 }, { a: 1 }).entries).toEqual([
+        { kind: 'field', path: 'b', type: 'deleted' },
+      ]);
     });
 
-    it('should detect deletions', () => {
-      const oldObj = { a: 1, b: 2 };
-      const newObj = { a: 1 };
-      expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'b', type: 'deleted' }]);
+    it('handles deep nesting', () => {
+      const result = computeDiff(
+        { user: { profile: { name: 'Jane' } } },
+        { user: { profile: { name: 'John' } } }
+      );
+
+      expect(result.entries).toEqual([
+        { kind: 'field', path: 'user.profile.name', type: 'changed' },
+      ]);
     });
 
-    it('should handle deep nesting', () => {
-      const oldObj = { user: { profile: { name: 'Jane' } } };
-      const newObj = { user: { profile: { name: 'John' } } };
-      expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'user.profile.name', type: 'changed' }]);
-    });
-
-    describe('Array diffing', () => {
-      it('should detect simple array changes', () => {
-        const oldObj = { tags: ['a', 'b'] };
-        const newObj = { tags: ['a', 'c'] };
-        expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'tags[1]', type: 'changed' }]);
-      });
-
-      it('should detect array additions at the end', () => {
-        const oldObj = { tags: ['a'] };
-        const newObj = { tags: ['a', 'b'] };
-        expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'tags[1]', type: 'added' }]);
-      });
-
-      it('should detect array deletions at the end', () => {
-        const oldObj = { tags: ['a', 'b'] };
-        const newObj = { tags: ['a'] };
-        expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'tags[1]', type: 'deleted' }]);
-      });
-
-      it('should detect insertions in the middle', () => {
-        const oldObj = { items: [1, 3] };
-        const newObj = { items: [1, 2, 3] };
-        // Our current implementation detects the difference at index 1 and 2
-        // start=1, newEnd=1, oldEnd=0
-        // It will see items[1] as added.
-        expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'items[1]', type: 'added' }]);
-      });
-
-      it('should detect deletions in the middle', () => {
-        const oldObj = { items: [1, 2, 3] };
-        const newObj = { items: [1, 3] };
-        // start=1, oldEnd=1, newEnd=0
-        // It will see items[1] as deleted.
-        expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'items[1]', type: 'deleted' }]);
-      });
-
-      it('should handle complex object arrays with stable diffing', () => {
-        const oldObj = { 
-          users: [
-            { id: 1, name: 'Alice' },
-            { id: 3, name: 'Charlie' }
-          ] 
-        };
-        const newObj = { 
-          users: [
-            { id: 1, name: 'Alice' },
-            { id: 2, name: 'Bob' },
-            { id: 3, name: 'Charlie' }
-          ] 
-        };
-        // It should identify that {id: 2} was inserted at index 1
-        expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'users[1]', type: 'added' }]);
-      });
-
-      it('should ignore pure moves for keyed array objects', () => {
-        const oldObj = {
-          users: [
-            { id: 1, name: 'Alice' },
-            { id: 2, name: 'Bob' },
-            { id: 3, name: 'Charlie' }
-          ]
-        };
-        const newObj = {
-          users: [
-            { id: 2, name: 'Bob' },
-            { id: 1, name: 'Alice' },
-            { id: 3, name: 'Charlie' }
-          ]
-        };
-
-        expect(computeDiff(oldObj, newObj)).toEqual([]);
-      });
-
-      it('should detect renamed fields after keyed items move', () => {
-        const oldObj = {
-          users: [
-            { id: 1, name: 'Alice' },
-            { id: 2, name: 'Bob' }
-          ]
-        };
-        const newObj = {
-          users: [
-            { id: 2, name: 'Bobby' },
-            { id: 1, name: 'Alice' }
-          ]
-        };
-
-        expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'users[0].name', type: 'changed' }]);
-      });
-
-      it('should auto-match reordered arrays by deterministic fingerprints when identities are absent', () => {
-        const oldObj = { users: [{ name: 'Alice' }, { name: 'Bob' }] };
-        const newObj = { users: [{ name: 'Bob' }, { name: 'Alice' }] };
-
-        expect(computeDiff(oldObj, newObj)).toEqual([]);
-      });
-
-      it('should allow forcing index-based comparison when identities are absent', () => {
-        const oldObj = { users: [{ name: 'Alice' }, { name: 'Bob' }] };
-        const newObj = { users: [{ name: 'Bob' }, { name: 'Alice' }] };
-
-        expect(computeDiff(oldObj, newObj, { arrayMatching: { mode: 'index' } })).toEqual([
-          { path: 'users[0].name', type: 'changed' },
-          { path: 'users[1].name', type: 'changed' }
+    describe('array diffing', () => {
+      it('detects primitive changes by index', () => {
+        const result = computeDiff({ tags: ['a', 'b'] }, { tags: ['a', 'c'] });
+        expect(result.entries).toEqual([
+          { kind: 'field', path: 'tags[1]', type: 'changed' },
         ]);
       });
 
-      it('should support nested array identity rules by wildcard path', () => {
-        const oldObj = {
-          orders: [
-            {
-              orderId: 'o1',
-              lines: [
-                { lineId: 'l1', sku: 'A', qty: 1 },
-                { lineId: 'l2', sku: 'B', qty: 1 }
-              ]
-            }
-          ]
-        };
-        const newObj = {
-          orders: [
-            {
-              orderId: 'o1',
-              lines: [
-                { lineId: 'l2', sku: 'B', qty: 2 },
-                { lineId: 'l1', sku: 'A', qty: 1 }
-              ]
-            }
-          ]
-        };
-
-        expect(computeDiff(oldObj, newObj, {
-          arrayMatching: {
-            identityByPath: {
-              'orders[]': 'orderId',
-              'orders[].lines[]': 'lineId',
-            },
+      it('detects primitive additions and deletions as array-item entries', () => {
+        expect(computeDiff({ tags: ['a'] }, { tags: ['a', 'b'] }).entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'tags[1]',
+            type: 'added',
+            oldIndex: null,
+            newIndex: 1,
+            matchSource: 'index',
+            highlightFields: [],
           },
-        })).toEqual([{ path: 'orders[0].lines[0].qty', type: 'changed' }]);
+        ]);
+
+        expect(computeDiff({ tags: ['a', 'b'] }, { tags: ['a'] }).entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'tags[1]',
+            type: 'deleted',
+            oldIndex: 1,
+            newIndex: null,
+            matchSource: 'index',
+            highlightFields: [],
+          },
+        ]);
       });
 
-      it('should support a global identity callback for nested arrays', () => {
-        const oldObj = {
-          groups: [
-            {
-              members: [
-                { code: 'a', name: 'Alpha' },
-                { code: 'b', name: 'Beta' }
-              ]
-            }
-          ]
-        };
-        const newObj = {
-          groups: [
-            {
-              members: [
-                { code: 'b', name: 'Beta v2' },
-                { code: 'a', name: 'Alpha' }
-              ]
-            }
-          ]
-        };
-
-        expect(computeDiff(oldObj, newObj, {
-          arrayMatching: {
-            getIdentity: (item, context) => {
-              if (context.wildcardArrayPath === 'groups[].members[]' && item && typeof item === 'object' && 'code' in item) {
-                return (item as { code: string }).code;
-              }
-              return null;
-            },
+      it('matches keyed array objects and records pure moves', () => {
+        const result = computeDiff(
+          {
+            users: [
+              { id: 1, name: 'Alice' },
+              { id: 2, name: 'Bob' },
+              { id: 3, name: 'Charlie' },
+            ],
           },
-        })).toEqual([{ path: 'groups[0].members[0].name', type: 'changed' }]);
+          {
+            users: [
+              { id: 2, name: 'Bob' },
+              { id: 1, name: 'Alice' },
+              { id: 3, name: 'Charlie' },
+            ],
+          }
+        );
+
+        expect(result.entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'users[0]',
+            type: 'moved',
+            oldIndex: 1,
+            newIndex: 0,
+            matchSource: 'built-in',
+            highlightFields: [],
+          },
+          {
+            kind: 'array-item',
+            path: 'users[1]',
+            type: 'moved',
+            oldIndex: 0,
+            newIndex: 1,
+            matchSource: 'built-in',
+            highlightFields: [],
+          },
+        ]);
+
+        expect(toHighlightPaths(result)).toEqual([
+          { path: 'users[0]', type: 'changed' },
+          { path: 'users[1]', type: 'changed' },
+        ]);
       });
 
-      it('should avoid auto fingerprint matching on larger arrays and stay index-based', () => {
+      it('records move plus changed field for keyed objects', () => {
+        const result = computeDiff(
+          {
+            users: [
+              { id: 1, name: 'Alice' },
+              { id: 2, name: 'Bob' },
+            ],
+          },
+          {
+            users: [
+              { id: 2, name: 'Bobby' },
+              { id: 1, name: 'Alice' },
+            ],
+          }
+        );
+
+        expect(result.entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'users[0]',
+            type: 'moved-changed',
+            oldIndex: 1,
+            newIndex: 0,
+            matchSource: 'built-in',
+            highlightFields: [{ path: 'users[0].name', type: 'changed' }],
+          },
+          { kind: 'field', path: 'users[0].name', type: 'changed' },
+          {
+            kind: 'array-item',
+            path: 'users[1]',
+            type: 'moved',
+            oldIndex: 0,
+            newIndex: 1,
+            matchSource: 'built-in',
+            highlightFields: [],
+          },
+        ]);
+
+        expect(toHighlightPaths(result)).toEqual([
+          { path: 'users[0]', type: 'changed' },
+          { path: 'users[0].name', type: 'changed' },
+          { path: 'users[1]', type: 'changed' },
+        ]);
+      });
+
+      it('supports nested identity rules by wildcard path', () => {
+        const result = computeDiff(
+          {
+            orders: [
+              {
+                orderId: 'o1',
+                lines: [
+                  { lineId: 'l1', sku: 'A', qty: 1 },
+                  { lineId: 'l2', sku: 'B', qty: 1 },
+                ],
+              },
+            ],
+          },
+          {
+            orders: [
+              {
+                orderId: 'o1',
+                lines: [
+                  { lineId: 'l2', sku: 'B', qty: 2 },
+                  { lineId: 'l1', sku: 'A', qty: 1 },
+                ],
+              },
+            ],
+          },
+          {
+            arrayMatching: {
+              identityByPath: {
+                'orders[]': 'orderId',
+                'orders[].lines[]': 'lineId',
+              },
+            },
+          }
+        );
+
+        expect(result.entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'orders[0].lines[0]',
+            type: 'moved-changed',
+            oldIndex: 1,
+            newIndex: 0,
+            matchSource: 'path-rule',
+            highlightFields: [{ path: 'orders[0].lines[0].qty', type: 'changed' }],
+          },
+          { kind: 'field', path: 'orders[0].lines[0].qty', type: 'changed' },
+          {
+            kind: 'array-item',
+            path: 'orders[0].lines[1]',
+            type: 'moved',
+            oldIndex: 0,
+            newIndex: 1,
+            matchSource: 'path-rule',
+            highlightFields: [],
+          },
+        ]);
+      });
+
+      it('supports a global identity callback', () => {
+        const result = computeDiff(
+          {
+            groups: [
+              {
+                members: [
+                  { code: 'a', name: 'Alpha' },
+                  { code: 'b', name: 'Beta' },
+                ],
+              },
+            ],
+          },
+          {
+            groups: [
+              {
+                members: [
+                  { code: 'b', name: 'Beta v2' },
+                  { code: 'a', name: 'Alpha' },
+                ],
+              },
+            ],
+          },
+          {
+            arrayMatching: {
+              getIdentity: (item, context) => {
+                if (context.wildcardArrayPath === 'groups[].members[]' && item && typeof item === 'object' && 'code' in item) {
+                  return (item as { code: string }).code;
+                }
+                return null;
+              },
+            },
+          }
+        );
+
+        expect(result.entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'groups[0].members[0]',
+            type: 'moved-changed',
+            oldIndex: 1,
+            newIndex: 0,
+            matchSource: 'callback',
+            highlightFields: [{ path: 'groups[0].members[0].name', type: 'changed' }],
+          },
+          { kind: 'field', path: 'groups[0].members[0].name', type: 'changed' },
+          {
+            kind: 'array-item',
+            path: 'groups[0].members[1]',
+            type: 'moved',
+            oldIndex: 0,
+            newIndex: 1,
+            matchSource: 'callback',
+            highlightFields: [],
+          },
+        ]);
+      });
+
+      it('uses automatic fingerprint matching for smaller non-keyed object arrays', () => {
+        const result = computeDiff(
+          {
+            users: [
+              { name: 'Alice', role: 'Admin' },
+              { name: 'Bob', role: 'Editor' },
+            ],
+          },
+          {
+            users: [
+              { role: 'Editor', name: 'Bob' },
+              { role: 'Admin', name: 'Alice' },
+            ],
+          }
+        );
+
+        expect(result.entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'users[0]',
+            type: 'moved',
+            oldIndex: 1,
+            newIndex: 0,
+            matchSource: 'fingerprint',
+            highlightFields: [],
+          },
+          {
+            kind: 'array-item',
+            path: 'users[1]',
+            type: 'moved',
+            oldIndex: 0,
+            newIndex: 1,
+            matchSource: 'fingerprint',
+            highlightFields: [],
+          },
+        ]);
+      });
+
+      it('falls back to index mode when explicitly requested', () => {
+        const result = computeDiff(
+          {
+            users: [
+              { name: 'Alice' },
+              { name: 'Bob' },
+            ],
+          },
+          {
+            users: [
+              { name: 'Bob' },
+              { name: 'Alice' },
+            ],
+          },
+          {
+            arrayMatching: {
+              mode: 'index',
+            },
+          }
+        );
+
+        expect(result.entries).toEqual([
+          { kind: 'field', path: 'users[0].name', type: 'changed' },
+          { kind: 'field', path: 'users[1].name', type: 'changed' },
+        ]);
+      });
+
+      it('limits automatic fingerprint matching for larger arrays', () => {
         const oldObj = {
           users: Array.from({ length: 40 }, (_, i) => ({ name: `User ${i}` })),
         };
@@ -215,13 +352,12 @@ describe('diff-utils', () => {
           users: [oldObj.users[39], ...oldObj.users.slice(0, 39)],
         };
 
-        const diff = computeDiff(oldObj, newObj);
-        expect(diff).toHaveLength(40);
-        expect(diff[0]).toEqual({ path: 'users[0].name', type: 'changed' });
-        expect(diff[39]).toEqual({ path: 'users[39].name', type: 'changed' });
+        const result = computeDiff(oldObj, newObj);
+        expect(result.entries).toHaveLength(40);
+        expect(result.entries[0]).toEqual({ kind: 'field', path: 'users[0].name', type: 'changed' });
       });
 
-      it('should let fingerprint mode force semantic matching beyond the auto threshold', () => {
+      it('allows forcing fingerprint mode beyond the auto threshold', () => {
         const oldObj = {
           users: Array.from({ length: 40 }, (_, i) => ({ name: `User ${i}` })),
         };
@@ -229,25 +365,41 @@ describe('diff-utils', () => {
           users: [oldObj.users[39], ...oldObj.users.slice(0, 39)],
         };
 
-        expect(computeDiff(oldObj, newObj, { arrayMatching: { mode: 'fingerprint' } })).toEqual([]);
+        const result = computeDiff(oldObj, newObj, {
+          arrayMatching: {
+            mode: 'fingerprint',
+          },
+        });
+
+        expect(result.entries.filter((entry) => entry.kind === 'array-item')).toHaveLength(40);
       });
 
-      it('should treat default fingerprint matching as exact-content only', () => {
-        const oldObj = {
-          users: [
-            { name: 'Alice', role: 'Admin' },
-            { name: 'Bob', role: 'Editor' }
-          ]
-        };
-        const newObj = {
-          users: [
-            { role: 'Owner', name: 'Bob' },
-            { role: 'Admin', name: 'Alice' }
-          ]
-        };
+      it('enforces one-to-one matching when duplicate identities exist', () => {
+        const result = computeDiff(
+          {
+            users: [
+              { code: 'dup', name: 'Alice A' },
+              { code: 'dup', name: 'Alice B' },
+            ],
+          },
+          {
+            users: [
+              { code: 'dup', name: 'Alice B' },
+              { code: 'dup', name: 'Alice A' },
+            ],
+          }
+          ,
+          {
+            arrayMatching: {
+              mode: 'identity-only',
+              getIdentity: (item) => item && typeof item === 'object' && 'code' in item ? (item as { code: string }).code : null,
+            },
+          }
+        );
 
-        expect(computeDiff(oldObj, newObj)).toEqual([
-          { path: 'users[0].role', type: 'changed' }
+        expect(result.entries).toEqual([
+          { kind: 'field', path: 'users[0].name', type: 'changed' },
+          { kind: 'field', path: 'users[1].name', type: 'changed' },
         ]);
       });
     });

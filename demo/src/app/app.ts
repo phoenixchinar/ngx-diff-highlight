@@ -1,7 +1,15 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
-import { DiffHighlightModule, DiffHighlightInput, computeDiff, DiffType } from 'ngx-diff-highlight';
+import {
+  ComputeDiffArrayItemEntry,
+  ComputeDiffResult,
+  DiffHighlightModule,
+  DiffHighlightInput,
+  computeDiff,
+  DiffType,
+  toHighlightPaths,
+} from 'ngx-diff-highlight';
 
 interface ComparisonRow {
   path: string;
@@ -14,6 +22,7 @@ interface ItemComparisonGroup {
   index: number;
   path: string;
   summary: string;
+  movement: string;
   fields: ComparisonRow[];
 }
 
@@ -63,7 +72,8 @@ export class App {
       team: 'Platform'
     }
   };
-  diffFields = computed(() => computeDiff(this.leftObj, this.rightObj));
+  diffResult = computed(() => computeDiff(this.leftObj, this.rightObj));
+  diffFields = computed(() => toHighlightPaths(this.diffResult()));
 
   // Scenario 5: Real-time Object Diffing
   oldJson = signal('{\n  "name": "Jane",\n  "team": "Platform",\n  "roles": ["Admin"]\n}');
@@ -83,9 +93,10 @@ export class App {
       { id: 3, name: 'Gamma', enabled: true }
     ]
   };
-  itemDiffFields = computed(() => computeDiff(this.leftItems, this.rightItems));
+  itemDiffResult = computed(() => computeDiff(this.leftItems, this.rightItems));
+  itemDiffFields = computed(() => toHighlightPaths(this.itemDiffResult()));
   readonly itemRows = computed(() => this.buildComparisonRows(this.leftItems, this.rightItems, this.itemDiffFields()));
-  readonly itemGroups = computed(() => this.buildItemGroups(this.itemRows()));
+  readonly itemGroups = computed(() => this.buildItemGroups(this.itemRows(), this.itemDiffResult()));
   readonly itemColumns = ['id', 'name', 'enabled'];
 
   // Scenario 7: Deterministic content fallback for arrays without ids
@@ -101,10 +112,12 @@ export class App {
       { role: 'Admin', name: 'Alice' }
     ]
   };
-  fallbackAutoDiff = computed(() => computeDiff(this.fallbackLeftItems, this.fallbackRightItems));
-  fallbackIndexDiff = computed(() => computeDiff(this.fallbackLeftItems, this.fallbackRightItems, {
+  fallbackAutoResult = computed(() => computeDiff(this.fallbackLeftItems, this.fallbackRightItems));
+  fallbackIndexResult = computed(() => computeDiff(this.fallbackLeftItems, this.fallbackRightItems, {
     arrayMatching: { mode: 'index' }
   }));
+  fallbackAutoDiff = computed(() => toHighlightPaths(this.fallbackAutoResult()));
+  fallbackIndexDiff = computed(() => toHighlightPaths(this.fallbackIndexResult()));
   readonly fallbackAutoRows = computed(() =>
     this.buildComparisonRows(this.fallbackLeftItems, this.fallbackRightItems, this.fallbackAutoDiff())
   );
@@ -135,7 +148,7 @@ export class App {
     if (state.error) {
       return [];
     }
-    return computeDiff(state.oldValue, state.newValue);
+    return toHighlightPaths(computeDiff(state.oldValue, state.newValue));
   });
 
   readonly liveRows = computed(() => {
@@ -212,8 +225,9 @@ export class App {
     }));
   }
 
-  private buildItemGroups(rows: ComparisonRow[]): ItemComparisonGroup[] {
+  private buildItemGroups(rows: ComparisonRow[], diffResult: ComputeDiffResult): ItemComparisonGroup[] {
     const groups = new Map<number, ComparisonRow[]>();
+    const moveEntries = new Map<number, ComputeDiffArrayItemEntry>();
 
     rows
       .filter((row) => row.path.startsWith('items['))
@@ -225,12 +239,23 @@ export class App {
         groups.set(index, [...(groups.get(index) ?? []), row]);
       });
 
+    diffResult.entries.forEach((entry) => {
+      if (entry.kind !== 'array-item' || !entry.path.startsWith('items[')) {
+        return;
+      }
+
+      const match = entry.path.match(/^items\[(\d+)\]/);
+      if (!match) return;
+      moveEntries.set(Number(match[1]), entry);
+    });
+
     return Array.from(groups.entries())
       .sort(([a], [b]) => a - b)
       .map(([index, fields]) => ({
         index,
         path: `items[${index}]`,
         summary: this.summarizeItemGroup(fields),
+        movement: this.describeItemMovement(moveEntries.get(index)),
         fields,
       }));
   }
@@ -242,6 +267,26 @@ export class App {
     }
 
     return activeTypes.map((type) => type.toUpperCase()).join(' + ');
+  }
+
+  private describeItemMovement(entry: ComputeDiffArrayItemEntry | undefined): string {
+    if (!entry) {
+      return 'Same index';
+    }
+
+    if (entry.type === 'added') {
+      return 'New row';
+    }
+
+    if (entry.type === 'deleted') {
+      return 'Removed row';
+    }
+
+    if (entry.oldIndex !== null && entry.newIndex !== null && entry.oldIndex !== entry.newIndex) {
+      return `Moved from items[${entry.oldIndex}]`;
+    }
+
+    return 'Same index';
   }
 
   countChangedRows(rows: ComparisonRow[]): number {

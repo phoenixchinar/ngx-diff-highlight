@@ -74,18 +74,20 @@ Check out the [Live Demo Showcase](https://phoenixchinar.github.io/ngx-diff-high
 
 ### Visual Diff & side-by-side Example
 
-You can use `computeDiff()` to automatically find differences between two objects and highlight them in a side-by-side view using the `cssPrefix` feature.
+You can use `computeDiff()` to get a structured diff result, then project it to highlight paths with `toHighlightPaths()` for the UI layer.
 
 ```ts
 // Component logic
+import { computeDiff, toHighlightPaths } from 'ngx-diff-highlight';
+
 const leftObj = { user: { name: 'Jane', bio: 'Text' } };
 const rightObj = { user: { name: 'John', lastName: 'Doe' } };
 
-// Computes: [{path: 'user.name', type: 'changed'}, {path: 'user.bio', type: 'deleted'}, {path: 'user.lastName', type: 'added'}]
-this.diffs = computeDiff(leftObj, rightObj);
+const diff = computeDiff(leftObj, rightObj);
+this.diffs = toHighlightPaths(diff);
 
 // Nested arrays can use path-aware identity rules
-this.diffs = computeDiff(leftObj, rightObj, {
+const ordersDiff = computeDiff(leftObj, rightObj, {
   arrayMatching: {
     identityByPath: {
       'orders[]': 'orderId',
@@ -93,13 +95,15 @@ this.diffs = computeDiff(leftObj, rightObj, {
     },
   },
 });
+this.orderHighlightPaths = toHighlightPaths(ordersDiff);
 
 // You can still force strict index mode when order should dominate
-this.indexDiff = computeDiff(leftObj, rightObj, {
+const indexDiff = computeDiff(leftObj, rightObj, {
   arrayMatching: {
     mode: 'index',
   },
 });
+this.indexHighlightPaths = toHighlightPaths(indexDiff);
 ```
 
 ```html

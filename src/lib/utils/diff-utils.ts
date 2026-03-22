@@ -2,7 +2,12 @@ import {
   ComputeDiffArrayIdentityContext,
   ComputeDiffArrayIdentityResolver,
   ComputeDiffArrayMatchingOptions,
+  ComputeDiffArrayItemEntry,
+  ComputeDiffEntry,
+  ComputeDiffFieldEntry,
+  ComputeDiffMatchSource,
   ComputeDiffOptions,
+  ComputeDiffResult,
   DiffFieldPathObject,
 } from '../models/diff-highlight.models';
 import { joinDiffPath } from './path-utils';
@@ -11,6 +16,11 @@ const DEFAULT_IDENTITY_KEYS = ['id', 'key', 'uuid', '_id'] as const;
 const DEFAULT_ARRAY_MODE = 'auto';
 const DEFAULT_MAX_AUTO_SEGMENT_SIZE = 32;
 const DEFAULT_MAX_FINGERPRINT_ENTRIES = 2048;
+
+interface Collector {
+  entries: ComputeDiffEntry[];
+  highlightFields: DiffFieldPathObject[];
+}
 
 interface DiffRuntime {
   options: RequiredComputeDiffOptions;
@@ -35,12 +45,17 @@ interface RequiredComputeDiffArrayMatchingOptions {
   };
 }
 
+interface ArrayMatch {
+  oldIndex: number;
+  newIndex: number;
+  source: Exclude<ComputeDiffMatchSource, 'index'>;
+}
+
 /**
- * Computes the difference between two objects and returns an array of path objects
- * compatible with the DiffHighlightService.
+ * Computes a structured diff between two values.
  */
-export function computeDiff(oldObj: unknown, newObj: unknown, options: ComputeDiffOptions = {}): DiffFieldPathObject[] {
-  const diffs: DiffFieldPathObject[] = [];
+export function computeDiff(oldObj: unknown, newObj: unknown, options: ComputeDiffOptions = {}): ComputeDiffResult {
+  const collector = createCollector();
   const runtime: DiffRuntime = {
     options: normalizeComputeDiffOptions(options),
     oldAncestors: new Set<object>(),
@@ -48,8 +63,19 @@ export function computeDiff(oldObj: unknown, newObj: unknown, options: ComputeDi
     fingerprintCache: new WeakMap<object, string | null>(),
   };
 
-  compare(oldObj, newObj, null, diffs, runtime);
-  return diffs;
+  compare(oldObj, newObj, null, collector, runtime);
+
+  return {
+    entries: collector.entries,
+    highlightFields: dedupeHighlightFields(collector.highlightFields),
+  };
+}
+
+/**
+ * Projects a structured diff result to the highlight-path format used by the directives.
+ */
+export function toHighlightPaths(result: ComputeDiffResult): DiffFieldPathObject[] {
+  return dedupeHighlightFields(result.highlightFields);
 }
 
 function normalizeComputeDiffOptions(options: ComputeDiffOptions): RequiredComputeDiffOptions {
@@ -70,114 +96,74 @@ function normalizeComputeDiffOptions(options: ComputeDiffOptions): RequiredCompu
   };
 }
 
-function isDeepEqual(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (a == null || b == null) return a === b;
-  if (typeof a !== typeof b) return false;
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!isDeepEqual(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
-    const keysA = Object.keys(a);
-    const keysB = Object.keys(b);
-    if (keysA.length !== keysB.length) return false;
-    const objA = a as Record<string, unknown>;
-    const objB = b as Record<string, unknown>;
-    for (const key of keysA) {
-      if (!Object.prototype.hasOwnProperty.call(b, key) || !isDeepEqual(objA[key], objB[key])) return false;
-    }
-    return true;
-  }
-
-  return false;
+function createCollector(): Collector {
+  return {
+    entries: [],
+    highlightFields: [],
+  };
 }
 
 function compare(
   oldVal: unknown,
   newVal: unknown,
   path: string | null,
-  diffs: DiffFieldPathObject[],
+  collector: Collector,
   runtime: DiffRuntime
 ): void {
   if (oldVal === newVal) return;
 
   if (oldVal == null || newVal == null || typeof oldVal !== typeof newVal || Array.isArray(oldVal) !== Array.isArray(newVal)) {
-    if (path) diffs.push({ path, type: 'changed' });
+    if (path) {
+      addFieldEntry(path, 'changed', collector);
+    }
     return;
   }
 
   if (!enterTraversal(oldVal, newVal, runtime)) {
+    if (path) {
+      addFieldEntry(path, 'changed', collector);
+    }
     return;
   }
 
   try {
-    if (Array.isArray(newVal) && Array.isArray(oldVal)) {
-      compareArrays(oldVal, newVal, path, diffs, runtime);
-    } else if (typeof newVal === 'object' && newVal !== null && oldVal !== null) {
-      compareObjects(oldVal as Record<string, unknown>, newVal as Record<string, unknown>, path, diffs, runtime);
-    } else {
-      if (path) diffs.push({ path, type: 'changed' });
+    if (Array.isArray(oldVal) && Array.isArray(newVal)) {
+      compareArrays(oldVal, newVal, path, collector, runtime);
+      return;
+    }
+
+    if (typeof oldVal === 'object' && oldVal !== null && typeof newVal === 'object' && newVal !== null) {
+      compareObjects(oldVal as Record<string, unknown>, newVal as Record<string, unknown>, path, collector, runtime);
+      return;
+    }
+
+    if (path) {
+      addFieldEntry(path, 'changed', collector);
     }
   } finally {
     leaveTraversal(oldVal, newVal, runtime);
   }
 }
 
-function enterTraversal(oldVal: unknown, newVal: unknown, runtime: DiffRuntime): boolean {
-  if (!isObjectLike(oldVal) || !isObjectLike(newVal)) {
-    return true;
-  }
-
-  if (runtime.oldAncestors.has(oldVal) || runtime.newAncestors.has(newVal)) {
-    return false;
-  }
-
-  runtime.oldAncestors.add(oldVal);
-  runtime.newAncestors.add(newVal);
-  return true;
-}
-
-function leaveTraversal(oldVal: unknown, newVal: unknown, runtime: DiffRuntime): void {
-  if (!isObjectLike(oldVal) || !isObjectLike(newVal)) {
-    return;
-  }
-
-  runtime.oldAncestors.delete(oldVal);
-  runtime.newAncestors.delete(newVal);
-}
-
-function isObjectLike(value: unknown): value is object {
-  return typeof value === 'object' && value !== null;
-}
-
 function compareObjects(
   oldObj: Record<string, unknown>,
   newObj: Record<string, unknown>,
   path: string | null,
-  diffs: DiffFieldPathObject[],
+  collector: Collector,
   runtime: DiffRuntime
 ): void {
-  const oldKeys = Object.keys(oldObj);
-  const newKeys = Object.keys(newObj);
-  const allKeys = new Set([...oldKeys, ...newKeys]);
+  const keys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
 
-  allKeys.forEach((key) => {
+  keys.forEach((key) => {
     const currentPath = joinDiffPath(path, key);
     if (!currentPath) return;
 
     if (!(key in oldObj)) {
-      diffs.push({ path: currentPath, type: 'added' });
+      addFieldEntry(currentPath, 'added', collector);
     } else if (!(key in newObj)) {
-      diffs.push({ path: currentPath, type: 'deleted' });
+      addFieldEntry(currentPath, 'deleted', collector);
     } else {
-      compare(oldObj[key], newObj[key], currentPath, diffs, runtime);
+      compare(oldObj[key], newObj[key], currentPath, collector, runtime);
     }
   });
 }
@@ -186,7 +172,7 @@ function compareArrays(
   oldArr: unknown[],
   newArr: unknown[],
   path: string | null,
-  diffs: DiffFieldPathObject[],
+  collector: Collector,
   runtime: DiffRuntime
 ): void {
   let start = 0;
@@ -202,15 +188,15 @@ function compareArrays(
   }
 
   if (start > oldEnd) {
-    for (let i = start; i <= newEnd; i++) {
-      diffs.push({ path: joinDiffPath(path, i)!, type: 'added' });
+    for (let index = start; index <= newEnd; index++) {
+      emitArrayItemPresence(joinDiffPath(path, index)!, null, index, 'added', 'index', collector);
     }
     return;
   }
 
   if (start > newEnd) {
-    for (let i = start; i <= oldEnd; i++) {
-      diffs.push({ path: joinDiffPath(path, i)!, type: 'deleted' });
+    for (let index = start; index <= oldEnd; index++) {
+      emitArrayItemPresence(joinDiffPath(path, index)!, index, null, 'deleted', 'index', collector);
     }
     return;
   }
@@ -220,47 +206,65 @@ function compareArrays(
   const matches = getArrayMatches(oldMiddle, newMiddle, path, runtime);
 
   if (matches.length === 0) {
-    diffArrayByIndex(oldMiddle, newMiddle, path, start, diffs, runtime);
+    diffArrayByIndex(oldMiddle, newMiddle, path, start, collector, runtime);
     return;
   }
 
-  const matchedOldIndices = new Set<number>();
-  const matchedNewIndices = new Set<number>();
-  const matchByNewIndex = new Map<number, number>();
-
-  matches.forEach(([oldIndex, newIndex]) => {
-    matchedOldIndices.add(oldIndex);
-    matchedNewIndices.add(newIndex);
-    matchByNewIndex.set(newIndex, oldIndex);
-  });
-
-  const unmatchedOldIndices = collectUnmatchedIndices(oldMiddle.length, matchedOldIndices);
-  const unmatchedNewIndices = collectUnmatchedIndices(newMiddle.length, matchedNewIndices);
+  const matchedOld = new Set(matches.map((match) => match.oldIndex));
+  const matchedNew = new Set(matches.map((match) => match.newIndex));
 
   let oldCursor = 0;
   let newCursor = 0;
-  while (oldCursor < unmatchedOldIndices.length && newCursor < unmatchedNewIndices.length) {
-    const oldIndex = unmatchedOldIndices[oldCursor];
-    const newIndex = unmatchedNewIndices[newCursor];
-    compare(oldMiddle[oldIndex], newMiddle[newIndex], joinDiffPath(path, start + newIndex), diffs, runtime);
+  const unmatchedOld = collectUnmatchedIndices(oldMiddle.length, matchedOld);
+  const unmatchedNew = collectUnmatchedIndices(newMiddle.length, matchedNew);
+
+  while (oldCursor < unmatchedOld.length && newCursor < unmatchedNew.length) {
+    compare(
+      oldMiddle[unmatchedOld[oldCursor]],
+      newMiddle[unmatchedNew[newCursor]],
+      joinDiffPath(path, start + unmatchedNew[newCursor]),
+      collector,
+      runtime
+    );
     oldCursor++;
     newCursor++;
   }
 
-  while (oldCursor < unmatchedOldIndices.length) {
-    diffs.push({ path: joinDiffPath(path, start + unmatchedOldIndices[oldCursor])!, type: 'deleted' });
+  while (oldCursor < unmatchedOld.length) {
+    emitArrayItemPresence(joinDiffPath(path, start + unmatchedOld[oldCursor])!, start + unmatchedOld[oldCursor], null, 'deleted', 'index', collector);
     oldCursor++;
   }
 
-  while (newCursor < unmatchedNewIndices.length) {
-    diffs.push({ path: joinDiffPath(path, start + unmatchedNewIndices[newCursor])!, type: 'added' });
+  while (newCursor < unmatchedNew.length) {
+    emitArrayItemPresence(joinDiffPath(path, start + unmatchedNew[newCursor])!, null, start + unmatchedNew[newCursor], 'added', 'index', collector);
     newCursor++;
   }
 
+  const matchesByNewIndex = new Map(matches.map((match) => [match.newIndex, match]));
   for (let newIndex = 0; newIndex < newMiddle.length; newIndex++) {
-    const oldIndex = matchByNewIndex.get(newIndex);
-    if (oldIndex === undefined) continue;
-    compare(oldMiddle[oldIndex], newMiddle[newIndex], joinDiffPath(path, start + newIndex), diffs, runtime);
+    const match = matchesByNewIndex.get(newIndex);
+    if (!match) continue;
+
+    const entryPath = joinDiffPath(path, start + match.newIndex)!;
+    const subtreeCollector = createCollector();
+    compare(oldMiddle[match.oldIndex], newMiddle[match.newIndex], entryPath, subtreeCollector, runtime);
+
+    const moved = match.oldIndex !== match.newIndex;
+    const subtreeHighlights = dedupeHighlightFields(subtreeCollector.highlightFields);
+
+    if (moved) {
+      addArrayItemEntry({
+        kind: 'array-item',
+        path: entryPath,
+        type: subtreeHighlights.length > 0 ? 'moved-changed' : 'moved',
+        oldIndex: start + match.oldIndex,
+        newIndex: start + match.newIndex,
+        matchSource: match.source,
+        highlightFields: subtreeHighlights,
+      }, collector);
+    }
+
+    appendCollector(collector, subtreeCollector);
   }
 }
 
@@ -269,33 +273,23 @@ function diffArrayByIndex(
   newArr: unknown[],
   path: string | null,
   startIndex: number,
-  diffs: DiffFieldPathObject[],
+  collector: Collector,
   runtime: DiffRuntime
 ): void {
-  const minEnd = Math.min(oldArr.length, newArr.length);
-  for (let i = 0; i < minEnd; i++) {
-    compare(oldArr[i], newArr[i], joinDiffPath(path, startIndex + i), diffs, runtime);
+  const overlap = Math.min(oldArr.length, newArr.length);
+  for (let index = 0; index < overlap; index++) {
+    compare(oldArr[index], newArr[index], joinDiffPath(path, startIndex + index), collector, runtime);
   }
 
   if (newArr.length > oldArr.length) {
-    for (let i = oldArr.length; i < newArr.length; i++) {
-      diffs.push({ path: joinDiffPath(path, startIndex + i)!, type: 'added' });
+    for (let index = oldArr.length; index < newArr.length; index++) {
+      emitArrayItemPresence(joinDiffPath(path, startIndex + index)!, null, startIndex + index, 'added', 'index', collector);
     }
   } else if (oldArr.length > newArr.length) {
-    for (let i = newArr.length; i < oldArr.length; i++) {
-      diffs.push({ path: joinDiffPath(path, startIndex + i)!, type: 'deleted' });
+    for (let index = newArr.length; index < oldArr.length; index++) {
+      emitArrayItemPresence(joinDiffPath(path, startIndex + index)!, startIndex + index, null, 'deleted', 'index', collector);
     }
   }
-}
-
-function collectUnmatchedIndices(length: number, matched: Set<number>): number[] {
-  const indices: number[] = [];
-  for (let i = 0; i < length; i++) {
-    if (!matched.has(i)) {
-      indices.push(i);
-    }
-  }
-  return indices;
 }
 
 function getArrayMatches(
@@ -303,32 +297,27 @@ function getArrayMatches(
   newArr: unknown[],
   path: string | null,
   runtime: DiffRuntime
-): Array<readonly [number, number]> {
+): ArrayMatch[] {
   const { arrayMatching } = runtime.options;
   if (arrayMatching.mode === 'index') {
     return [];
   }
 
   const wildcardArrayPath = toWildcardArrayPath(path);
-  const explicitRule = arrayMatching.identityByPath[wildcardArrayPath];
-
-  if (explicitRule) {
-    const explicitMatches = getUniqueMatchesByResolver(oldArr, newArr, explicitRule, path, wildcardArrayPath);
-    if (explicitMatches.length > 0) {
-      return explicitMatches;
-    }
+  const pathRule = arrayMatching.identityByPath[wildcardArrayPath];
+  if (pathRule) {
+    const matches = getUniqueMatchesByResolver(oldArr, newArr, pathRule, path, wildcardArrayPath, 'path-rule');
+    if (matches.length > 0) return matches;
   }
 
   if (arrayMatching.getIdentity) {
-    const globalMatches = getUniqueMatchesByResolver(oldArr, newArr, arrayMatching.getIdentity, path, wildcardArrayPath);
-    if (globalMatches.length > 0) {
-      return globalMatches;
-    }
+    const matches = getUniqueMatchesByResolver(oldArr, newArr, arrayMatching.getIdentity, path, wildcardArrayPath, 'callback');
+    if (matches.length > 0) return matches;
   }
 
-  const builtInMatches = getUniqueMatchesByBuiltInKeys(oldArr, newArr, path, wildcardArrayPath, runtime);
-  if (builtInMatches.length > 0) {
-    return builtInMatches;
+  for (const key of arrayMatching.builtInIdentityKeys) {
+    const matches = getUniqueMatchesByResolver(oldArr, newArr, key, path, wildcardArrayPath, 'built-in');
+    if (matches.length > 0) return matches;
   }
 
   if (arrayMatching.mode === 'identity-only') {
@@ -346,74 +335,92 @@ function getArrayMatches(
   return getUniqueMatchesByFingerprint(oldArr, newArr, runtime);
 }
 
-function toWildcardArrayPath(path: string | null): string {
-  if (!path) {
-    return '[]';
-  }
-
-  return `${path.replace(/\[\d+\]/g, '[]')}[]`;
-}
-
-function getUniqueMatchesByBuiltInKeys(
-  oldArr: unknown[],
-  newArr: unknown[],
-  path: string | null,
-  wildcardArrayPath: string,
-  runtime: DiffRuntime
-): Array<readonly [number, number]> {
-  for (const key of runtime.options.arrayMatching.builtInIdentityKeys) {
-    const matches = getUniqueMatchesByResolver(oldArr, newArr, key, path, wildcardArrayPath);
-    if (matches.length > 0) {
-      return matches;
-    }
-  }
-
-  return [];
-}
-
 function getUniqueMatchesByResolver(
   oldArr: unknown[],
   newArr: unknown[],
   resolver: ComputeDiffArrayIdentityResolver,
   path: string | null,
-  wildcardArrayPath: string
-): Array<readonly [number, number]> {
+  wildcardArrayPath: string,
+  source: Exclude<ComputeDiffMatchSource, 'fingerprint' | 'index'>
+): ArrayMatch[] {
   const oldMap = new Map<string, number[]>();
   const newMap = new Map<string, number[]>();
 
   for (let index = 0; index < oldArr.length; index++) {
-    const key = resolveIdentityKey(oldArr[index], resolver, {
+    const identity = resolveIdentityKey(oldArr[index], resolver, {
       arrayPath: path,
       wildcardArrayPath,
       side: 'old',
       index,
     });
-    if (!key) continue;
-    const existing = oldMap.get(key);
-    if (existing) {
-      existing.push(index);
-    } else {
-      oldMap.set(key, [index]);
-    }
+    if (!identity) continue;
+    pushMappedIndex(oldMap, identity, index);
   }
 
   for (let index = 0; index < newArr.length; index++) {
-    const key = resolveIdentityKey(newArr[index], resolver, {
+    const identity = resolveIdentityKey(newArr[index], resolver, {
       arrayPath: path,
       wildcardArrayPath,
       side: 'new',
       index,
     });
-    if (!key) continue;
-    const existing = newMap.get(key);
-    if (existing) {
-      existing.push(index);
-    } else {
-      newMap.set(key, [index]);
-    }
+    if (!identity) continue;
+    pushMappedIndex(newMap, identity, index);
   }
 
-  return collectUniqueMatches(oldMap, newMap);
+  return collectUniqueMatches(oldMap, newMap, source);
+}
+
+function getUniqueMatchesByFingerprint(
+  oldArr: unknown[],
+  newArr: unknown[],
+  runtime: DiffRuntime
+): ArrayMatch[] {
+  const oldMap = new Map<string, number[]>();
+  const newMap = new Map<string, number[]>();
+
+  for (let index = 0; index < oldArr.length; index++) {
+    const fingerprint = fingerprintValue(oldArr[index], runtime);
+    if (!fingerprint) return [];
+    pushMappedIndex(oldMap, fingerprint, index);
+  }
+
+  for (let index = 0; index < newArr.length; index++) {
+    const fingerprint = fingerprintValue(newArr[index], runtime);
+    if (!fingerprint) return [];
+    pushMappedIndex(newMap, fingerprint, index);
+  }
+
+  return collectUniqueMatches(oldMap, newMap, 'fingerprint');
+}
+
+function collectUniqueMatches(
+  oldMap: Map<string, number[]>,
+  newMap: Map<string, number[]>,
+  source: Exclude<ComputeDiffMatchSource, 'index'>
+): ArrayMatch[] {
+  const matches: ArrayMatch[] = [];
+  const usedOld = new Set<number>();
+  const usedNew = new Set<number>();
+
+  for (const [key, oldIndices] of oldMap.entries()) {
+    const newIndices = newMap.get(key);
+    if (!newIndices || oldIndices.length !== 1 || newIndices.length !== 1) {
+      continue;
+    }
+
+    const oldIndex = oldIndices[0];
+    const newIndex = newIndices[0];
+    if (usedOld.has(oldIndex) || usedNew.has(newIndex)) {
+      continue;
+    }
+
+    usedOld.add(oldIndex);
+    usedNew.add(newIndex);
+    matches.push({ oldIndex, newIndex, source });
+  }
+
+  return matches.sort((a, b) => a.newIndex - b.newIndex);
 }
 
 function resolveIdentityKey(
@@ -449,27 +456,9 @@ function readNamedIdentity(item: unknown, key: string): string | number | boolea
   return null;
 }
 
-function collectUniqueMatches(
-  oldMap: Map<string, number[]>,
-  newMap: Map<string, number[]>
-): Array<readonly [number, number]> {
-  const matches: Array<readonly [number, number]> = [];
-
-  for (const [key, oldIndices] of oldMap.entries()) {
-    const newIndices = newMap.get(key);
-    if (!newIndices || oldIndices.length !== 1 || newIndices.length !== 1) {
-      continue;
-    }
-    matches.push([oldIndices[0], newIndices[0]]);
-  }
-
-  return matches;
-}
-
 function shouldAutoFingerprint(oldArr: unknown[], newArr: unknown[], runtime: DiffRuntime): boolean {
-  const { maxAutoSegmentSize } = runtime.options.arrayMatching.fingerprint;
-
-  if (oldArr.length > maxAutoSegmentSize || newArr.length > maxAutoSegmentSize) {
+  const maxSegmentSize = runtime.options.arrayMatching.fingerprint.maxAutoSegmentSize;
+  if (oldArr.length > maxSegmentSize || newArr.length > maxSegmentSize) {
     return false;
   }
 
@@ -480,51 +469,12 @@ function isAutoFingerprintCandidate(value: unknown): boolean {
   return isPlainObject(value) || Array.isArray(value) || value instanceof Date;
 }
 
-function getUniqueMatchesByFingerprint(
-  oldArr: unknown[],
-  newArr: unknown[],
-  runtime: DiffRuntime
-): Array<readonly [number, number]> {
-  const oldMap = new Map<string, number[]>();
-  const newMap = new Map<string, number[]>();
-
-  for (let index = 0; index < oldArr.length; index++) {
-    const fingerprint = fingerprintValue(oldArr[index], runtime);
-    if (!fingerprint) {
-      return [];
-    }
-    const existing = oldMap.get(fingerprint);
-    if (existing) {
-      existing.push(index);
-    } else {
-      oldMap.set(fingerprint, [index]);
-    }
-  }
-
-  for (let index = 0; index < newArr.length; index++) {
-    const fingerprint = fingerprintValue(newArr[index], runtime);
-    if (!fingerprint) {
-      return [];
-    }
-    const existing = newMap.get(fingerprint);
-    if (existing) {
-      existing.push(index);
-    } else {
-      newMap.set(fingerprint, [index]);
-    }
-  }
-
-  return collectUniqueMatches(oldMap, newMap);
-}
-
 function fingerprintValue(value: unknown, runtime: DiffRuntime): string | null {
-  const state = {
+  return serializeFingerprint(value, {
     entries: 0,
     maxEntries: runtime.options.arrayMatching.fingerprint.maxFingerprintEntries,
     ancestors: new Set<object>(),
-  };
-
-  return serializeFingerprint(value, state, runtime);
+  }, runtime);
 }
 
 function serializeFingerprint(
@@ -571,9 +521,9 @@ function serializeFingerprint(
     try {
       const parts: string[] = [];
       for (const item of value) {
-        const serialized = serializeFingerprint(item, state, runtime);
-        if (serialized === null) return null;
-        parts.push(serialized);
+        const child = serializeFingerprint(item, state, runtime);
+        if (child === null) return null;
+        parts.push(child);
       }
       return `arr[${parts.join('$$$')}]`;
     } finally {
@@ -593,23 +543,130 @@ function serializeFingerprint(
   if (state.ancestors.has(value)) return null;
   state.ancestors.add(value);
   try {
-    const record = value as Record<string, unknown>;
-    const keys = Object.keys(record).sort();
     const parts: string[] = [];
-    for (const key of keys) {
-      const serialized = serializeFingerprint(record[key], state, runtime);
-      if (serialized === null) {
+    for (const key of Object.keys(value).sort()) {
+      const child = serializeFingerprint((value as Record<string, unknown>)[key], state, runtime);
+      if (child === null) {
         runtime.fingerprintCache.set(value, null);
         return null;
       }
-      parts.push(`key:${key}$$$${serialized}`);
+      parts.push(`key:${key}$$$${child}`);
     }
-    const result = `obj{${parts.join('$$$')}}`;
-    runtime.fingerprintCache.set(value, result);
-    return result;
+    const fingerprint = `obj{${parts.join('$$$')}}`;
+    runtime.fingerprintCache.set(value, fingerprint);
+    return fingerprint;
   } finally {
     state.ancestors.delete(value);
   }
+}
+
+function emitArrayItemPresence(
+  path: string,
+  oldIndex: number | null,
+  newIndex: number | null,
+  type: 'added' | 'deleted',
+  source: ComputeDiffMatchSource,
+  collector: Collector
+): void {
+  addArrayItemEntry({
+    kind: 'array-item',
+    path,
+    type,
+    oldIndex,
+    newIndex,
+    matchSource: source,
+    highlightFields: [],
+  }, collector);
+}
+
+function addFieldEntry(path: string, type: Exclude<DiffFieldPathObject['type'], 'none' | undefined>, collector: Collector): void {
+  const entry: ComputeDiffFieldEntry = {
+    kind: 'field',
+    path,
+    type,
+  };
+  collector.entries.push(entry);
+  collector.highlightFields.push({ path, type });
+}
+
+function addArrayItemEntry(entry: ComputeDiffArrayItemEntry, collector: Collector): void {
+  collector.entries.push(entry);
+
+  const highlightType = entry.type === 'added'
+    ? 'added'
+    : entry.type === 'deleted'
+      ? 'deleted'
+      : 'changed';
+  collector.highlightFields.push({ path: entry.path, type: highlightType });
+
+  entry.highlightFields.forEach((field) => collector.highlightFields.push(field));
+}
+
+function appendCollector(target: Collector, source: Collector): void {
+  target.entries.push(...source.entries);
+  target.highlightFields.push(...source.highlightFields);
+}
+
+function dedupeHighlightFields(fields: DiffFieldPathObject[]): DiffFieldPathObject[] {
+  const map = new Map<string, DiffFieldPathObject>();
+  for (const field of fields) {
+    map.set(field.path, field);
+  }
+  return Array.from(map.values());
+}
+
+function pushMappedIndex(map: Map<string, number[]>, key: string, index: number): void {
+  const existing = map.get(key);
+  if (existing) {
+    existing.push(index);
+  } else {
+    map.set(key, [index]);
+  }
+}
+
+function collectUnmatchedIndices(length: number, matched: Set<number>): number[] {
+  const indices: number[] = [];
+  for (let index = 0; index < length; index++) {
+    if (!matched.has(index)) {
+      indices.push(index);
+    }
+  }
+  return indices;
+}
+
+function toWildcardArrayPath(path: string | null): string {
+  if (!path) {
+    return '[]';
+  }
+
+  return `${path.replace(/\[\d+\]/g, '[]')}[]`;
+}
+
+function enterTraversal(oldVal: unknown, newVal: unknown, runtime: DiffRuntime): boolean {
+  if (!isObjectLike(oldVal) || !isObjectLike(newVal)) {
+    return true;
+  }
+
+  if (runtime.oldAncestors.has(oldVal) || runtime.newAncestors.has(newVal)) {
+    return false;
+  }
+
+  runtime.oldAncestors.add(oldVal);
+  runtime.newAncestors.add(newVal);
+  return true;
+}
+
+function leaveTraversal(oldVal: unknown, newVal: unknown, runtime: DiffRuntime): void {
+  if (!isObjectLike(oldVal) || !isObjectLike(newVal)) {
+    return;
+  }
+
+  runtime.oldAncestors.delete(oldVal);
+  runtime.newAncestors.delete(newVal);
+}
+
+function isObjectLike(value: unknown): value is object {
+  return typeof value === 'object' && value !== null;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -619,4 +676,33 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
+}
+
+function isDeepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return a === b;
+  if (typeof a !== typeof b) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!isDeepEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  if (typeof a === 'object' && typeof b === 'object' && a !== null && b !== null) {
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    const objA = a as Record<string, unknown>;
+    const objB = b as Record<string, unknown>;
+    for (const key of keysA) {
+      if (!Object.prototype.hasOwnProperty.call(b, key) || !isDeepEqual(objA[key], objB[key])) return false;
+    }
+    return true;
+  }
+
+  return false;
 }

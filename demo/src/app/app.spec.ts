@@ -85,14 +85,18 @@ describe('App', () => {
     expect(compiled.querySelector('[data-live-row="roles[1]"]')).toBeTruthy();
     expect(compiled.querySelector('[data-item-right-row="items[0]"]')?.classList.contains('diff-highlight')).toBe(true);
     expect(compiled.querySelector('[data-item-right="items[0].name"]')?.classList.contains('diff-highlight')).toBe(true);
-    expect(compiled.querySelector('[data-item-right-row="items[1]"]')?.classList.contains('diff-highlight')).toBe(false);
+    expect(compiled.querySelector('[data-item-right-row="items[1]"]')?.classList.contains('diff-highlight')).toBe(true);
     expect(compiled.textContent).toContain('Previous Items');
     expect(compiled.textContent).toContain('Current Items');
     expect(compiled.textContent).toContain('enabled');
+    expect(compiled.textContent).toContain('Moved from items[1]');
+    expect(compiled.textContent).toContain('Moved from items[0]');
     expect(compiled.querySelector('[data-item-right="items[2].name"]')).toBeTruthy();
     expect(compiled.querySelector('[data-item-right-row="items[1]"] .table-status')?.textContent).toContain('UNCHANGED');
     expect(compiled.querySelector('[data-fallback-index="users[0].name"]')?.classList.contains('diff-highlight')).toBe(true);
-    expect(compiled.querySelector('[data-fallback-auto="users[0].name"]')?.classList.contains('diff-highlight')).toBe(false);
+    expect(compiled.querySelector('[data-fallback-auto="users[0].name"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.textContent).toContain('Forced Index Mode');
+    expect(compiled.textContent).toContain('Default Auto Matching');
     expect(compiled.textContent).toContain('Auto fingerprint matched');
 
     app.newJson.set('{');

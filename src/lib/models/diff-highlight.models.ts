@@ -59,6 +59,31 @@ export interface ComputeDiffOptions {
   arrayMatching?: ComputeDiffArrayMatchingOptions;
 }
 
+export type ComputeDiffMatchSource = 'path-rule' | 'callback' | 'built-in' | 'fingerprint' | 'index';
+
+export interface ComputeDiffFieldEntry {
+  kind: 'field';
+  path: string;
+  type: Exclude<DiffType, 'none'>;
+}
+
+export interface ComputeDiffArrayItemEntry {
+  kind: 'array-item';
+  path: string;
+  type: 'added' | 'deleted' | 'moved' | 'moved-changed';
+  oldIndex: number | null;
+  newIndex: number | null;
+  matchSource: ComputeDiffMatchSource;
+  highlightFields: DiffFieldPathObject[];
+}
+
+export type ComputeDiffEntry = ComputeDiffFieldEntry | ComputeDiffArrayItemEntry;
+
+export interface ComputeDiffResult {
+  entries: ComputeDiffEntry[];
+  highlightFields: DiffFieldPathObject[];
+}
+
 export interface DiffHighlightPathContext {
   getPath(): string | null;
 }

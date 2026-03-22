@@ -47,6 +47,30 @@ export interface ComputeDiffOptions {
 
 `mode: 'auto'` is the default. It tries path-aware identity rules, then built-in identity keys, then bounded fingerprint matching for smaller object-array reorder segments, and finally falls back to index-based diffing.
 
+### `ComputeDiffResult`
+Structured result returned by `computeDiff()`.
+```ts
+export interface ComputeDiffResult {
+  entries: ComputeDiffEntry[];
+  highlightFields: DiffFieldPathObject[];
+}
+```
+
+### `ComputeDiffEntry`
+Each diff entry is either a leaf field diff or an array-item diff.
+```ts
+export type ComputeDiffEntry = ComputeDiffFieldEntry | ComputeDiffArrayItemEntry;
+```
+
+`ComputeDiffFieldEntry` represents `added`, `deleted`, or `changed` fields. `ComputeDiffArrayItemEntry` represents `added`, `deleted`, `moved`, or `moved-changed` array items and includes old/new indexes plus the match source.
+
+### `toHighlightPaths(result)`
+Projects a structured diff result to the highlight-path format used by `diff-highlight-scope`.
+```ts
+const diff = computeDiff(oldValue, newValue);
+const fields = toHighlightPaths(diff);
+```
+
 ## Injection Tokens
 
 ### `DIFF_HIGHLIGHT_CONFIG`
