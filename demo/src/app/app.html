@@ -4,26 +4,67 @@
   <!-- Scenario 1: Basic Detail View -->
   <section class="scenario">
     <h2>1. Basic Detail View</h2>
-    <p>Displays simple path resolution. Update the input to change highlighted fields.</p>
-    
+    <p>This shows the basic path matcher. Use the presets to compare exact field matches with ancestor and descendant path matches.</p>
+
     <div class="controls">
-      <label for="basic-fields">Highlighted Fields (comma-separated): </label>
-      <input id="basic-fields" #basicInput [value]="basicFieldsInput()" (input)="updateBasicFields(basicInput.value)">
+      <button (click)="showBasicFields(['contact.email'])">Exact field</button>
+      <button (click)="showBasicFields(['address'])">Parent path</button>
+      <button (click)="showBasicFields(['address.city'])">Child path</button>
+      <button (click)="showBasicFields(['contact.email', 'address.city'])">Mixed</button>
+      <button (click)="showBasicFields([])">Clear</button>
+    </div>
+
+    <div class="capability-note compact">
+      @if (basicFieldLabels().length > 0) {
+        @for (field of basicFieldLabels(); track field) {
+          <span class="capability-pill" [attr.data-basic-active]="field">{{ field }}</span>
+        }
+      } @else {
+        <span class="capability-pill muted" data-basic-empty>No active fields</span>
+      }
     </div>
 
     <diff-highlight-scope [fields]="basicFields()">
-      <div class="card">
-        <div [diffHighlightField]="'name'">
-          <strong>Name:</strong> John Doe
+      <div class="card basic-card">
+        <div class="basic-header" [diffHighlightField]="'profile'">
+          <div>
+            <div class="basic-eyebrow">Profile Summary</div>
+            <strong>Jane Doe</strong>
+          </div>
+          <span class="diff-tag">profile</span>
         </div>
-        <div [diffHighlightField]="'email'">
-          <strong>Email:</strong> john@example.com
+
+        <div class="basic-grid">
+          <div class="basic-cell" [diffHighlightField]="'contact.email'" data-basic-path="contact.email">
+            <span class="label">contact.email</span>
+            <span class="value">jane@example.com</span>
+          </div>
+          <div class="basic-cell" [diffHighlightField]="'contact.phone'" data-basic-path="contact.phone">
+            <span class="label">contact.phone</span>
+            <span class="value">(555) 123-4567</span>
+          </div>
         </div>
-        <div [diffHighlightField]="'address.city'">
-          <strong>City:</strong> New York
-        </div>
-        <div [diffHighlightField]="'address.zip'">
-          <strong>ZIP:</strong> 10001
+
+        <section class="basic-section" [diffHighlightField]="'address'" data-basic-path="address">
+          <div class="basic-section-title">
+            <span>Address Section</span>
+            <span class="basic-help">Parent path highlights this whole card and its children</span>
+          </div>
+
+          <div class="basic-grid">
+            <div class="basic-cell" [diffHighlightField]="'address.city'" data-basic-path="address.city">
+              <span class="label">address.city</span>
+              <span class="value">Phoenix</span>
+            </div>
+            <div class="basic-cell" [diffHighlightField]="'address.zip'" data-basic-path="address.zip">
+              <span class="label">address.zip</span>
+              <span class="value">85004</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="basic-note">
+          Exact target: <code>contact.email</code>. Parent target: <code>address</code>. Child target: <code>address.city</code> also highlights the parent <code>address</code> block.
         </div>
       </div>
     </diff-highlight-scope>
@@ -179,7 +220,7 @@
         </diff-highlight-scope>
 
         <div class="gap-note">
-          <strong>Current library behavior:</strong> <code>computeDiff()</code> now aligns array items by stable identity keys such as <code>id</code>, <code>key</code>, and <code>uuid</code>. Arrays without a stable identity still fall back to index-based diffing.
+          <strong>Current library behavior:</strong> <code>computeDiff()</code> now aligns array items by stable identity keys such as <code>id</code>, <code>key</code>, and <code>uuid</code>. Arrays without a stable identity use automatic fingerprint matching for smaller object-array reorder segments, and you can still force index mode when order should dominate.
         </div>
       }
     </div>
@@ -187,18 +228,35 @@
 
   <section class="scenario">
     <h2>6. Arrays of Complex Objects</h2>
-    <p>This shows how <code>computeDiff()</code> handles arrays of objects: unchanged fields stay plain, changed fields are marked by path, and added objects surface as new indexed paths.</p>
+    <p>This keyed-array example shows semantic moves in a table layout. Each row is an <code>items[i]</code> object, and each column highlights its own field path while the whole row can highlight when any field in that object changes.</p>
 
     <div class="side-by-side">
       <div class="version">
         <h3>Previous Items</h3>
         <diff-highlight-scope [fields]="itemDiffFields()" cssPrefix="left">
-          <div class="card diff-card">
-            @for (row of itemRows(); track row.path) {
-              <div class="field-row" [diffHighlightField]="row.path" [attr.data-item-left]="row.path">
-                <span class="label">{{ row.path }}</span>
-                <span class="value" [class.missing]="row.leftValue === 'Not present'">{{ row.leftValue }}</span>
-                <span class="diff-tag">{{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}</span>
+          <div class="table-card">
+            <div class="diff-table table-head">
+              <div>Row</div>
+              @for (column of itemColumns; track column) {
+                <div>{{ column }}</div>
+              }
+              <div>Status</div>
+            </div>
+
+            @for (group of itemGroups(); track group.path) {
+              <div class="diff-table table-row" [diffHighlightField]="group.path" [attr.data-item-left-row]="group.path">
+                <div class="table-row-label">{{ group.path }}</div>
+                @for (column of itemColumns; track column) {
+                  <div
+                    class="table-cell"
+                    [diffHighlightField]="group.path + '.' + column"
+                    [attr.data-item-left]="group.path + '.' + column">
+                    <span class="value" [class.missing]="getItemFieldValue(group, column, 'left') === 'Not present'">
+                      {{ getItemFieldValue(group, column, 'left') }}
+                    </span>
+                  </div>
+                }
+                <div class="table-status">{{ group.summary }}</div>
               </div>
             }
           </div>
@@ -208,16 +266,83 @@
       <div class="version">
         <h3>Current Items</h3>
         <diff-highlight-scope [fields]="itemDiffFields()" cssPrefix="right">
+          <div class="table-card">
+            <div class="diff-table table-head">
+              <div>Row</div>
+              @for (column of itemColumns; track column) {
+                <div>{{ column }}</div>
+              }
+              <div>Status</div>
+            </div>
+
+            @for (group of itemGroups(); track group.path) {
+              <div class="diff-table table-row" [diffHighlightField]="group.path" [attr.data-item-right-row]="group.path">
+                <div class="table-row-label">{{ group.path }}</div>
+                @for (column of itemColumns; track column) {
+                  <div
+                    class="table-cell"
+                    [diffHighlightField]="group.path + '.' + column"
+                    [attr.data-item-right]="group.path + '.' + column">
+                    <span class="value" [class.missing]="getItemFieldValue(group, column, 'right') === 'Not present'">
+                      {{ getItemFieldValue(group, column, 'right') }}
+                    </span>
+                  </div>
+                }
+                <div class="table-status">{{ group.summary }}</div>
+              </div>
+            }
+          </div>
+        </diff-highlight-scope>
+      </div>
+    </div>
+
+    <div class="capability-note">
+      <span class="capability-pill">Stable identity move matching</span>
+      <span class="capability-pill">Whole-row ancestor-path highlighting</span>
+      <span class="capability-pill">Nested field-path highlighting</span>
+    </div>
+  </section>
+
+  <section class="scenario">
+    <h2>7. Automatic Fingerprint Matching</h2>
+    <p>These arrays do not have <code>id</code>-style keys. On the left, explicit <code>mode: 'index'</code> treats the reorder as positional changes. On the right, the default auto mode uses a typed deterministic fingerprint to recognize exact-content moves in smaller object-array segments.</p>
+
+    <div class="side-by-side">
+      <div class="version">
+        <h3>Forced Index Mode</h3>
+        <diff-highlight-scope [fields]="fallbackIndexDiff()">
           <div class="card diff-card">
-            @for (row of itemRows(); track row.path) {
-              <div class="field-row" [diffHighlightField]="row.path" [attr.data-item-right]="row.path">
+            @for (row of fallbackIndexRows(); track row.path) {
+              <div class="field-row" [diffHighlightField]="row.path" [attr.data-fallback-index]="row.path">
                 <span class="label">{{ row.path }}</span>
-                <span class="value" [class.missing]="row.rightValue === 'Not present'">{{ row.rightValue }}</span>
+                <span class="value">{{ row.leftValue }} -> {{ row.rightValue }}</span>
                 <span class="diff-tag">{{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}</span>
               </div>
             }
           </div>
         </diff-highlight-scope>
+        <div class="capability-note compact">
+          <span class="capability-pill">Changed rows: {{ countChangedRows(fallbackIndexRows()) }}</span>
+        </div>
+      </div>
+
+      <div class="version">
+        <h3>Default Auto Matching</h3>
+        <diff-highlight-scope [fields]="fallbackAutoDiff()">
+          <div class="card diff-card">
+            @for (row of fallbackAutoRows(); track row.path) {
+              <div class="field-row" [diffHighlightField]="row.path" [attr.data-fallback-auto]="row.path">
+                <span class="label">{{ row.path }}</span>
+                <span class="value" [class.unchanged-value]="row.type === 'none'">{{ row.leftValue }} -> {{ row.rightValue }}</span>
+                <span class="diff-tag">{{ row.type === 'none' ? 'UNCHANGED' : row.type.toUpperCase() }}</span>
+              </div>
+            }
+          </div>
+        </diff-highlight-scope>
+        <div class="capability-note compact">
+          <span class="capability-pill">Changed rows: {{ countChangedRows(fallbackAutoRows()) }}</span>
+          <span class="capability-pill">Auto fingerprint matched</span>
+        </div>
       </div>
     </div>
   </section>

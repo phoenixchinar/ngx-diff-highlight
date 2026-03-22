@@ -11,7 +11,8 @@ Angular library for resolving canonical diff field paths, scoping those paths to
 - **Scoped diff state management:** Each `diff-highlight-scope` is isolated, allowing multiple independent diffs on the same page.
 - **Precedence-based path resolution:** Automatic path resolution from DOM, Angular forms, or hierarchical context.
 - **Deterministic highlighting:** Symmetric matching for exact, ancestor, and descendant matches.
-- **Semantic array diffing:** `computeDiff()` can align moved array items by stable identity keys such as `id`, `key`, `uuid`, and `_id`.
+- **Semantic array diffing:** `computeDiff()` aligns moved array items by path-aware identity rules, user hooks, or built-in keys such as `id`, `key`, `uuid`, and `_id`.
+- **Automatic fingerprint matching:** Smaller object-array reorder segments without identities can still match semantically using a typed deterministic fingerprint, while large arrays stay index-based by default.
 - **Seamless integration:** Built-in support for Angular Reactive Forms.
 - **Compatibility:** Aliases for legacy `appHighlightField*` selectors.
 
@@ -82,6 +83,23 @@ const rightObj = { user: { name: 'John', lastName: 'Doe' } };
 
 // Computes: [{path: 'user.name', type: 'changed'}, {path: 'user.bio', type: 'deleted'}, {path: 'user.lastName', type: 'added'}]
 this.diffs = computeDiff(leftObj, rightObj);
+
+// Nested arrays can use path-aware identity rules
+this.diffs = computeDiff(leftObj, rightObj, {
+  arrayMatching: {
+    identityByPath: {
+      'orders[]': 'orderId',
+      'orders[].lines[]': 'lineId',
+    },
+  },
+});
+
+// You can still force strict index mode when order should dominate
+this.indexDiff = computeDiff(leftObj, rightObj, {
+  arrayMatching: {
+    mode: 'index',
+  },
+});
 ```
 
 ```html

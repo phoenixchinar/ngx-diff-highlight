@@ -27,6 +27,26 @@ export interface DiffHighlightConfig {
 }
 ```
 
+### `ComputeDiffOptions`
+Configuration for structural diffing and array matching.
+```ts
+export interface ComputeDiffOptions {
+  arrayMatching?: {
+    mode?: 'auto' | 'identity-only' | 'fingerprint' | 'index';
+    identityByPath?: Record<string, string | ComputeDiffArrayIdentityResolver>;
+    getIdentity?: ComputeDiffArrayIdentityResolver;
+    builtInIdentityKeys?: string[];
+    fingerprint?: {
+      enabled?: boolean;
+      maxAutoSegmentSize?: number;
+      maxFingerprintEntries?: number;
+    };
+  };
+}
+```
+
+`mode: 'auto'` is the default. It tries path-aware identity rules, then built-in identity keys, then bounded fingerprint matching for smaller object-array reorder segments, and finally falls back to index-based diffing.
+
 ## Injection Tokens
 
 ### `DIFF_HIGHLIGHT_CONFIG`

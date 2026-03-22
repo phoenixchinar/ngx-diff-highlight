@@ -28,12 +28,37 @@ describe('App', () => {
     await fixture.whenStable();
 
     const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-basic-active="contact.email"]')).toBeTruthy();
+    expect(compiled.querySelector('[data-basic-path="contact.email"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.querySelector('[data-basic-path="address"]')?.classList.contains('diff-highlight')).toBe(false);
     expect(compiled.querySelector('.diff-highlight')).toBeTruthy();
     expect(compiled.querySelector('.left-changed')).toBeTruthy();
     expect(compiled.querySelector('.left-deleted')).toBeTruthy();
     expect(compiled.querySelector('.right-added')).toBeTruthy();
     expect(compiled.querySelector('[data-path="user.team"]')?.textContent).toContain('UNCHANGED');
     expect(compiled.querySelector('[data-path="user.team"]')?.classList.contains('diff-highlight')).toBe(false);
+  });
+
+  it('should show parent and child path matching in the basic detail view', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    app.showBasicFields(['address']);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    let compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-basic-path="address"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.querySelector('[data-basic-path="address.city"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.querySelector('[data-basic-path="address.zip"]')?.classList.contains('diff-highlight')).toBe(true);
+
+    app.showBasicFields([]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-basic-empty]')).toBeTruthy();
+    expect(compiled.querySelector('[data-basic-path="contact.email"]')?.classList.contains('diff-highlight')).toBe(false);
   });
 
   it('should highlight form array inputs', async () => {
@@ -55,11 +80,20 @@ describe('App', () => {
 
     let compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.textContent).toContain('Current library behavior:');
-    expect(compiled.textContent).toContain('stable identity keys');
+    expect(compiled.textContent).toContain('automatic fingerprint matching');
     expect(compiled.querySelector('[data-live-row="team"]')?.textContent).toContain('UNCHANGED');
     expect(compiled.querySelector('[data-live-row="roles[1]"]')).toBeTruthy();
+    expect(compiled.querySelector('[data-item-right-row="items[0]"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.querySelector('[data-item-right="items[0].name"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.querySelector('[data-item-right-row="items[1]"]')?.classList.contains('diff-highlight')).toBe(false);
+    expect(compiled.textContent).toContain('Previous Items');
+    expect(compiled.textContent).toContain('Current Items');
+    expect(compiled.textContent).toContain('enabled');
     expect(compiled.querySelector('[data-item-right="items[2].name"]')).toBeTruthy();
-    expect(compiled.querySelector('[data-item-right="items[0].id"]')?.textContent).toContain('UNCHANGED');
+    expect(compiled.querySelector('[data-item-right-row="items[1]"] .table-status')?.textContent).toContain('UNCHANGED');
+    expect(compiled.querySelector('[data-fallback-index="users[0].name"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.querySelector('[data-fallback-auto="users[0].name"]')?.classList.contains('diff-highlight')).toBe(false);
+    expect(compiled.textContent).toContain('Auto fingerprint matched');
 
     app.newJson.set('{');
     fixture.detectChanges();

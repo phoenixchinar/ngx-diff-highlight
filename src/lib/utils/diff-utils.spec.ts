@@ -122,13 +122,132 @@ describe('diff-utils', () => {
         expect(computeDiff(oldObj, newObj)).toEqual([{ path: 'users[0].name', type: 'changed' }]);
       });
 
-      it('should still fall back to index-based comparison without stable identities', () => {
+      it('should auto-match reordered arrays by deterministic fingerprints when identities are absent', () => {
         const oldObj = { users: [{ name: 'Alice' }, { name: 'Bob' }] };
         const newObj = { users: [{ name: 'Bob' }, { name: 'Alice' }] };
 
-        expect(computeDiff(oldObj, newObj)).toEqual([
+        expect(computeDiff(oldObj, newObj)).toEqual([]);
+      });
+
+      it('should allow forcing index-based comparison when identities are absent', () => {
+        const oldObj = { users: [{ name: 'Alice' }, { name: 'Bob' }] };
+        const newObj = { users: [{ name: 'Bob' }, { name: 'Alice' }] };
+
+        expect(computeDiff(oldObj, newObj, { arrayMatching: { mode: 'index' } })).toEqual([
           { path: 'users[0].name', type: 'changed' },
           { path: 'users[1].name', type: 'changed' }
+        ]);
+      });
+
+      it('should support nested array identity rules by wildcard path', () => {
+        const oldObj = {
+          orders: [
+            {
+              orderId: 'o1',
+              lines: [
+                { lineId: 'l1', sku: 'A', qty: 1 },
+                { lineId: 'l2', sku: 'B', qty: 1 }
+              ]
+            }
+          ]
+        };
+        const newObj = {
+          orders: [
+            {
+              orderId: 'o1',
+              lines: [
+                { lineId: 'l2', sku: 'B', qty: 2 },
+                { lineId: 'l1', sku: 'A', qty: 1 }
+              ]
+            }
+          ]
+        };
+
+        expect(computeDiff(oldObj, newObj, {
+          arrayMatching: {
+            identityByPath: {
+              'orders[]': 'orderId',
+              'orders[].lines[]': 'lineId',
+            },
+          },
+        })).toEqual([{ path: 'orders[0].lines[0].qty', type: 'changed' }]);
+      });
+
+      it('should support a global identity callback for nested arrays', () => {
+        const oldObj = {
+          groups: [
+            {
+              members: [
+                { code: 'a', name: 'Alpha' },
+                { code: 'b', name: 'Beta' }
+              ]
+            }
+          ]
+        };
+        const newObj = {
+          groups: [
+            {
+              members: [
+                { code: 'b', name: 'Beta v2' },
+                { code: 'a', name: 'Alpha' }
+              ]
+            }
+          ]
+        };
+
+        expect(computeDiff(oldObj, newObj, {
+          arrayMatching: {
+            getIdentity: (item, context) => {
+              if (context.wildcardArrayPath === 'groups[].members[]' && item && typeof item === 'object' && 'code' in item) {
+                return (item as { code: string }).code;
+              }
+              return null;
+            },
+          },
+        })).toEqual([{ path: 'groups[0].members[0].name', type: 'changed' }]);
+      });
+
+      it('should avoid auto fingerprint matching on larger arrays and stay index-based', () => {
+        const oldObj = {
+          users: Array.from({ length: 40 }, (_, i) => ({ name: `User ${i}` })),
+        };
+        const newObj = {
+          users: [oldObj.users[39], ...oldObj.users.slice(0, 39)],
+        };
+
+        const diff = computeDiff(oldObj, newObj);
+        expect(diff).toHaveLength(40);
+        expect(diff[0]).toEqual({ path: 'users[0].name', type: 'changed' });
+        expect(diff[39]).toEqual({ path: 'users[39].name', type: 'changed' });
+      });
+
+      it('should let fingerprint mode force semantic matching beyond the auto threshold', () => {
+        const oldObj = {
+          users: Array.from({ length: 40 }, (_, i) => ({ name: `User ${i}` })),
+        };
+        const newObj = {
+          users: [oldObj.users[39], ...oldObj.users.slice(0, 39)],
+        };
+
+        expect(computeDiff(oldObj, newObj, { arrayMatching: { mode: 'fingerprint' } })).toEqual([]);
+      });
+
+      it('should treat default fingerprint matching as exact-content only', () => {
+        const oldObj = {
+          users: [
+            { name: 'Alice', role: 'Admin' },
+            { name: 'Bob', role: 'Editor' }
+          ]
+        };
+        const newObj = {
+          users: [
+            { role: 'Owner', name: 'Bob' },
+            { role: 'Admin', name: 'Alice' }
+          ]
+        };
+
+        expect(computeDiff(oldObj, newObj)).toEqual([
+          { path: 'users[0].role', type: 'changed' }
         ]);
       });
     });

@@ -10,6 +10,15 @@ interface ComparisonRow {
   type: DiffType;
 }
 
+interface ItemComparisonGroup {
+  index: number;
+  path: string;
+  summary: string;
+  fields: ComparisonRow[];
+}
+
+type ComparisonSide = 'left' | 'right';
+
 interface ParsedJsonState {
   oldValue: unknown | null;
   newValue: unknown | null;
@@ -27,8 +36,8 @@ export class App {
   private fb = inject(FormBuilder);
 
   // Scenario 1: Basic Detail View
-  basicFieldsInput = signal('name, address.city');
-  basicFields = computed<DiffHighlightInput[]>(() => this.basicFieldsInput().split(',').map(s => s.trim()).filter(s => !!s));
+  basicFields = signal<DiffHighlightInput[]>(['contact.email']);
+  readonly basicFieldLabels = computed(() => this.basicFields().map((field) => typeof field === 'string' ? field : field.path));
   
   // Scenario 2: Reactive Form
   form: FormGroup;
@@ -69,13 +78,39 @@ export class App {
   };
   rightItems = {
     items: [
-      { id: 1, name: 'Alpha', enabled: true },
       { id: 2, name: 'Beta v2', enabled: true },
+      { id: 1, name: 'Alpha', enabled: true },
       { id: 3, name: 'Gamma', enabled: true }
     ]
   };
   itemDiffFields = computed(() => computeDiff(this.leftItems, this.rightItems));
   readonly itemRows = computed(() => this.buildComparisonRows(this.leftItems, this.rightItems, this.itemDiffFields()));
+  readonly itemGroups = computed(() => this.buildItemGroups(this.itemRows()));
+  readonly itemColumns = ['id', 'name', 'enabled'];
+
+  // Scenario 7: Deterministic content fallback for arrays without ids
+  fallbackLeftItems = {
+    users: [
+      { name: 'Alice', role: 'Admin' },
+      { name: 'Bob', role: 'Editor' }
+    ]
+  };
+  fallbackRightItems = {
+    users: [
+      { role: 'Editor', name: 'Bob' },
+      { role: 'Admin', name: 'Alice' }
+    ]
+  };
+  fallbackAutoDiff = computed(() => computeDiff(this.fallbackLeftItems, this.fallbackRightItems));
+  fallbackIndexDiff = computed(() => computeDiff(this.fallbackLeftItems, this.fallbackRightItems, {
+    arrayMatching: { mode: 'index' }
+  }));
+  readonly fallbackAutoRows = computed(() =>
+    this.buildComparisonRows(this.fallbackLeftItems, this.fallbackRightItems, this.fallbackAutoDiff())
+  );
+  readonly fallbackIndexRows = computed(() =>
+    this.buildComparisonRows(this.fallbackLeftItems, this.fallbackRightItems, this.fallbackIndexDiff())
+  );
 
   readonly visualRows = computed(() => this.buildComparisonRows(this.leftObj, this.rightObj, this.diffFields()));
 
@@ -129,8 +164,8 @@ export class App {
     return this.form.get('roles') as FormArray;
   }
 
-  updateBasicFields(val: string) {
-    this.basicFieldsInput.set(val);
+  showBasicFields(fields: DiffHighlightInput[]) {
+    this.basicFields.set(fields);
   }
 
   updateFormFields(val: string) {
@@ -175,6 +210,51 @@ export class App {
       rightValue: this.formatValue(this.readPath(right, path)),
       type: diffMap.get(path) ?? 'none',
     }));
+  }
+
+  private buildItemGroups(rows: ComparisonRow[]): ItemComparisonGroup[] {
+    const groups = new Map<number, ComparisonRow[]>();
+
+    rows
+      .filter((row) => row.path.startsWith('items['))
+      .forEach((row) => {
+        const match = row.path.match(/^items\[(\d+)\]/);
+        if (!match) return;
+
+        const index = Number(match[1]);
+        groups.set(index, [...(groups.get(index) ?? []), row]);
+      });
+
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([index, fields]) => ({
+        index,
+        path: `items[${index}]`,
+        summary: this.summarizeItemGroup(fields),
+        fields,
+      }));
+  }
+
+  private summarizeItemGroup(fields: ComparisonRow[]): string {
+    const activeTypes = Array.from(new Set(fields.map((field) => field.type).filter((type) => type !== 'none')));
+    if (activeTypes.length === 0) {
+      return 'UNCHANGED';
+    }
+
+    return activeTypes.map((type) => type.toUpperCase()).join(' + ');
+  }
+
+  countChangedRows(rows: ComparisonRow[]): number {
+    return rows.filter((row) => row.type !== 'none').length;
+  }
+
+  getItemFieldValue(group: ItemComparisonGroup, key: string, side: ComparisonSide): string {
+    const field = group.fields.find((row) => row.path === `${group.path}.${key}`);
+    if (!field) {
+      return 'Not present';
+    }
+
+    return side === 'left' ? field.leftValue : field.rightValue;
   }
 
   private collectLeafPaths(value: unknown, path: string | null = null): string[] {
