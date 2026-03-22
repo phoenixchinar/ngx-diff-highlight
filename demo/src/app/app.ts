@@ -349,6 +349,16 @@ export class App {
       : this.formatValue(this.readPath(this.rightItems, `${path}.${key}`));
   }
 
+  getItemTooltip(group: ItemComparisonGroup, side: ComparisonSide): string {
+    const sourcePath = side === 'left' ? group.leftPath : group.rightPath;
+    return [
+      `Comparison row: ${group.path}`,
+      `Rendered source: ${sourcePath ?? 'Not present'}`,
+      `Status: ${group.summary}`,
+      `Movement: ${group.movement}`,
+    ].join(' | ');
+  }
+
   private collectLeafPaths(value: unknown, path: string | null = null): string[] {
     if (Array.isArray(value)) {
       if (value.length === 0) {

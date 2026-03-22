@@ -228,7 +228,7 @@
 
   <section class="scenario">
     <h2>6. Arrays of Complex Objects</h2>
-    <p>This keyed-array example shows semantic moves in a table layout. Each row compares the same logical item on both sides, so moved rows stay aligned to their original source on the left while each column still highlights its own field path.</p>
+    <p>This keyed-array example shows semantic moves in a table layout. Both sides stay in the same comparison order, while each row tooltip explains which source index is being rendered and whether the item moved.</p>
 
     <div class="side-by-side">
       <div class="version">
@@ -236,11 +236,9 @@
         <diff-highlight-scope [fields]="itemDiffFields()" cssPrefix="left">
           <div class="table-card">
             <div class="diff-table table-head">
-              <div>Row</div>
               @for (column of itemColumns; track column) {
                 <div>{{ column }}</div>
               }
-              <div>Status</div>
             </div>
 
             @for (group of itemGroups(); track group.path) {
@@ -248,8 +246,7 @@
                 class="diff-table table-row"
                 [diffHighlightField]="group.path"
                 [attr.data-item-left-row]="group.path"
-                [attr.title]="group.movement">
-                <div class="table-row-label">{{ group.leftPath ?? 'Not present' }}</div>
+                [attr.title]="getItemTooltip(group, 'left')">
                 @for (column of itemColumns; track column) {
                   <div
                     class="table-cell"
@@ -260,7 +257,6 @@
                     </span>
                   </div>
                 }
-                <div class="table-status">{{ group.summary }}</div>
               </div>
             }
           </div>
@@ -272,11 +268,9 @@
         <diff-highlight-scope [fields]="itemDiffFields()" cssPrefix="right">
           <div class="table-card">
             <div class="diff-table table-head">
-              <div>Row</div>
               @for (column of itemColumns; track column) {
                 <div>{{ column }}</div>
               }
-              <div>Status</div>
             </div>
 
             @for (group of itemGroups(); track group.path) {
@@ -284,8 +278,7 @@
                 class="diff-table table-row"
                 [diffHighlightField]="group.path"
                 [attr.data-item-right-row]="group.path"
-                [attr.title]="group.movement">
-                <div class="table-row-label">{{ group.rightPath ?? 'Not present' }}</div>
+                [attr.title]="getItemTooltip(group, 'right')">
                 @for (column of itemColumns; track column) {
                   <div
                     class="table-cell"
@@ -296,7 +289,6 @@
                     </span>
                   </div>
                 }
-                <div class="table-status">{{ group.summary }}</div>
               </div>
             }
           </div>
