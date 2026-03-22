@@ -78,7 +78,13 @@ export class App {
   };
   editableForm: FormGroup;
   editableCurrentValue = signal(this.editableBaseline);
-  editableDiffResult = computed(() => computeDiff(this.editableBaseline, this.editableCurrentValue()));
+  editableDiffResult = computed(() => computeDiff(this.editableBaseline, this.editableCurrentValue(), {
+    arrayMatching: {
+      identityByPath: {
+        'profile.contacts[]': 'label',
+      },
+    },
+  }));
   editableDiffFields = computed(() => toHighlightPaths(this.editableDiffResult()));
 
   // Scenario 4: Visual Diff (Added, Changed, Deleted)
@@ -228,6 +234,17 @@ export class App {
 
   get editableContacts() {
     return this.editableForm.get('profile.contacts') as FormArray;
+  }
+
+  addEditableContact() {
+    this.editableContacts.push(this.fb.group({
+      label: [`New ${this.editableContacts.length + 1}`],
+      value: [''],
+    }));
+  }
+
+  removeEditableContact(index: number) {
+    this.editableContacts.removeAt(index);
   }
 
   showBasicFields(fields: DiffHighlightInput[]) {

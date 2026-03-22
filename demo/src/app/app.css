@@ -146,6 +146,11 @@ h1 {
   color: #334155;
 }
 
+.detail-help {
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
 .control-row {
   display: grid;
   gap: 0.4rem;
@@ -262,6 +267,10 @@ h1 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.diff-table.two-col {
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 1.8fr);
+}
+
 .table-head {
   background: linear-gradient(180deg, #eff6ff, #eef2ff);
   font-size: 0.78rem;
@@ -293,6 +302,33 @@ h1 {
 .table-cell {
   display: flex;
   align-items: center;
+}
+
+.table-cell input {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #c4ced6;
+  border-radius: 6px;
+}
+
+.table-cell-editor {
+  gap: 0.5rem;
+}
+
+.row-action {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  border-radius: 6px;
+  background: #b91c1c;
+  color: #fff;
+  cursor: pointer;
+}
+
+.inline-controls {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0;
 }
 
 .json-editor {

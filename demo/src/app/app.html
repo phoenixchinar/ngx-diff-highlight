@@ -147,7 +147,7 @@
 
   <section class="scenario">
     <h2>3b. Live Detail Editor</h2>
-    <p>The left side is a read-only detail view. The right side is an editable form with nested groups and an array. As you type, <code>computeDiff()</code> recalculates the active paths and both sides update immediately.</p>
+    <p>The left side is a read-only detail view. The right side is an editable form with nested groups and an array. As you type, <code>computeDiff()</code> recalculates the active paths and both sides update immediately. In the contacts table, <code>label</code> is treated as the row identity.</p>
 
     <div class="side-by-side">
       <div class="version">
@@ -183,20 +183,23 @@
 
               <div diffHighlightGroup="contacts" class="detail-subsection" [diffHighlightField]="'profile.contacts'">
                 <div class="detail-subtitle">Contacts</div>
-                @for (contact of editableBaseline.profile.contacts; track $index) {
-                  <div [diffHighlightArray]="$index" class="detail-array-row" [diffHighlightField]="'profile.contacts[' + $index + ']'">
-                    <div class="field-row" [diffHighlightField]="'profile.contacts[' + $index + '].label'" [attr.data-live-detail]="'profile.contacts[' + $index + '].label'">
-                      <span class="label">{{ 'profile.contacts[' + $index + '].label' }}</span>
-                      <span class="value">{{ contact.label }}</span>
-                      <span class="diff-tag">Static</span>
-                    </div>
-                    <div class="field-row" [diffHighlightField]="'profile.contacts[' + $index + '].value'" [attr.data-live-detail]="'profile.contacts[' + $index + '].value'">
-                      <span class="label">{{ 'profile.contacts[' + $index + '].value' }}</span>
-                      <span class="value">{{ contact.value }}</span>
-                      <span class="diff-tag">Static</span>
-                    </div>
+                <div class="detail-help">`label` is the id column for semantic row matching.</div>
+                <div class="table-card">
+                  <div class="diff-table two-col table-head">
+                    <div>Label (ID)</div>
+                    <div>Value</div>
                   </div>
-                }
+                  @for (contact of editableBaseline.profile.contacts; track contact.label; let i = $index) {
+                    <div [diffHighlightArray]="i" class="diff-table two-col table-row" [diffHighlightField]="'profile.contacts[' + i + ']'" [attr.data-contacts-left-row]="'profile.contacts[' + i + ']'">
+                      <div class="table-cell" [diffHighlightField]="'profile.contacts[' + i + '].label'" [attr.data-live-detail]="'profile.contacts[' + i + '].label'">
+                        <span class="value">{{ contact.label }}</span>
+                      </div>
+                      <div class="table-cell" [diffHighlightField]="'profile.contacts[' + i + '].value'" [attr.data-live-detail]="'profile.contacts[' + i + '].value'">
+                        <span class="value">{{ contact.value }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
               </div>
             </div>
           </div>
@@ -232,18 +235,27 @@
 
               <div diffHighlightGroup="contacts" formArrayName="contacts" class="detail-subsection" [diffHighlightField]="'profile.contacts'">
                 <div class="detail-subtitle">Contacts</div>
-                @for (contact of editableContacts.controls; track $index) {
-                  <div [diffHighlightArray]="$index" [formGroupName]="$index" class="detail-array-row" [diffHighlightField]="'profile.contacts[' + $index + ']'">
-                    <div class="control-row" [diffHighlightField]="'profile.contacts[' + $index + '].label'" [attr.data-live-control-row]="'profile.contacts[' + $index + '].label'">
-                      <label [for]="'editable-contact-label-' + $index">{{ 'profile.contacts[' + $index + '].label' }}</label>
-                      <input [id]="'editable-contact-label-' + $index" formControlName="label" [attr.data-live-control]="'profile.contacts[' + $index + '].label'">
-                    </div>
-                    <div class="control-row" [diffHighlightField]="'profile.contacts[' + $index + '].value'" [attr.data-live-control-row]="'profile.contacts[' + $index + '].value'">
-                      <label [for]="'editable-contact-value-' + $index">{{ 'profile.contacts[' + $index + '].value' }}</label>
-                      <input [id]="'editable-contact-value-' + $index" formControlName="value" [attr.data-live-control]="'profile.contacts[' + $index + '].value'">
-                    </div>
+                <div class="detail-help">Rows can be inserted or deleted. Matching stays semantic because `label` is the identity key.</div>
+                <div class="table-card">
+                  <div class="diff-table two-col table-head">
+                    <div>Label (ID)</div>
+                    <div>Value</div>
                   </div>
-                }
+                  @for (contact of editableContacts.controls; track $index) {
+                    <div [diffHighlightArray]="$index" [formGroupName]="$index" class="diff-table two-col table-row" [diffHighlightField]="'profile.contacts[' + $index + ']'" [attr.data-contacts-right-row]="'profile.contacts[' + $index + ']'">
+                      <div class="table-cell" [diffHighlightField]="'profile.contacts[' + $index + '].label'" [attr.data-live-control-row]="'profile.contacts[' + $index + '].label'">
+                        <input [id]="'editable-contact-label-' + $index" formControlName="label" [attr.data-live-control]="'profile.contacts[' + $index + '].label'">
+                      </div>
+                      <div class="table-cell table-cell-editor" [diffHighlightField]="'profile.contacts[' + $index + '].value'" [attr.data-live-control-row]="'profile.contacts[' + $index + '].value'">
+                        <input [id]="'editable-contact-value-' + $index" formControlName="value" [attr.data-live-control]="'profile.contacts[' + $index + '].value'">
+                        <button type="button" class="row-action" (click)="removeEditableContact($index)" [attr.data-remove-contact]="$index">Delete</button>
+                      </div>
+                    </div>
+                  }
+                </div>
+                <div class="controls inline-controls">
+                  <button type="button" (click)="addEditableContact()" data-add-contact>Add contact</button>
+                </div>
               </div>
             </div>
           </form>

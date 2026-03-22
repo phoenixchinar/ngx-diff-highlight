@@ -99,6 +99,35 @@ describe('App', () => {
     compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('[data-live-detail="profile.contacts[1].value"]')?.classList.contains('diff-highlight')).toBe(true);
     expect(compiled.querySelector('[data-live-control-row="profile.contacts[1].value"]')?.classList.contains('diff-highlight')).toBe(true);
+
+    expect(compiled.textContent).toContain('Label (ID)');
+    expect(compiled.querySelector('[data-add-contact]')).toBeTruthy();
+    expect(compiled.querySelector('[data-remove-contact="0"]')).toBeTruthy();
+
+    const firstLabelInput = compiled.querySelector('[data-live-control="profile.contacts[0].label"]') as HTMLInputElement;
+    firstLabelInput.value = 'Primary';
+    firstLabelInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-live-detail="profile.contacts[0].label"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.querySelector('[data-live-control-row="profile.contacts[0].label"]')?.classList.contains('diff-highlight')).toBe(true);
+
+    (compiled.querySelector('[data-add-contact]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-live-control="profile.contacts[2].label"]')).toBeTruthy();
+    expect(compiled.querySelector('[data-contacts-right-row="profile.contacts[2]"]')?.classList.contains('diff-highlight')).toBe(true);
+
+    (compiled.querySelector('[data-remove-contact="1"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-live-control="profile.contacts[2].label"]')).toBeNull();
   });
 
   it('should show the current computeDiff array behavior note and handle invalid json', async () => {
