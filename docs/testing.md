@@ -2,6 +2,17 @@
 
 Testing components that use `ngx-diff-highlight` is simple because it relies on standard Angular patterns.
 
+## Structured Diff Results
+
+`computeDiff()` now returns a structured `ComputeDiffResult`. If a component only needs directive-compatible field paths, project the result with `toHighlightPaths()`:
+
+```ts
+import { computeDiff, toHighlightPaths } from 'ngx-diff-highlight';
+
+const diff = computeDiff(oldValue, newValue);
+component.diffFields = toHighlightPaths(diff);
+```
+
 ## Mocking the Service
 
 If you're testing a component that provides a scope, you can usually let the library work as-is. 
@@ -30,11 +41,11 @@ describe('MyComponent', () => {
     const fixture = TestBed.createComponent(MyComponent);
     fixture.detectChanges();
 
-    fields$.next(['my.field']);
+    fields$.next([{ path: 'my.field', type: 'changed' }]);
     fixture.detectChanges();
 
     const el = fixture.nativeElement.querySelector('#my-field');
-    expect(el.classList.contains('highlight-diff')).toBe(true);
+    expect(el.classList.contains('diff-highlight')).toBe(true);
   });
 });
 ```
@@ -53,4 +64,25 @@ it('should update highlights when fields change', async () => {
   
   // Assert here
 });
+```
+
+## Testing Structured Array Diffs
+
+If you are testing diff logic directly, assert against `result.entries` for move/add/delete semantics and `toHighlightPaths(result)` for directive-facing paths:
+
+```ts
+const result = computeDiff(oldValue, newValue);
+
+expect(result.entries).toEqual([
+  expect.objectContaining({
+    kind: 'array-item',
+    type: 'moved',
+    oldIndex: 1,
+    newIndex: 0,
+  }),
+]);
+
+expect(toHighlightPaths(result)).toEqual([
+  { path: 'items[0]', type: 'changed' },
+]);
 ```

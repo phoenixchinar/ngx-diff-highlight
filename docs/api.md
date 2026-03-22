@@ -14,6 +14,7 @@ Emitted by the highlight directive when its highlight state changes.
 export interface DiffHighlightMatchEvent {
   path: DiffFieldPath | null;
   highlighted: boolean;
+  type: DiffType;
 }
 ```
 
@@ -115,7 +116,8 @@ Matching works both downward (ancestor match) and upward (descendant match).
 ### `DiffHighlightScopeComponent`
 Provides an isolated highlight scope for its subtree.
 - **Selector:** `diff-highlight-scope`, `[diffHighlightScope]`
-- **Input:** `fields: string[]` (reactive)
+- **Input:** `fields: DiffHighlightInput[]` (reactive)
+- **Input:** `cssPrefix?: string`
 
 ### `DiffHighlightFieldDirective`
 Primary directive to receive highlight classes.
@@ -139,6 +141,8 @@ Names a nested field segment.
 
 ### `DiffHighlightService`
 Scoped service managing the field list.
-- `setFields(fields: string[]): void`
-- `fields$: Observable<string[]>`
+- `setFields(fields: DiffHighlightInput[]): void`
+- `fields$: Observable<DiffFieldPathObject[]>`
 - `clear(): void`
+- `addField(field: DiffHighlightInput): void`
+- `removeField(path: string): void`
