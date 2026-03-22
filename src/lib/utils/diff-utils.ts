@@ -213,31 +213,15 @@ function compareArrays(
   const matchedOld = new Set(matches.map((match) => match.oldIndex));
   const matchedNew = new Set(matches.map((match) => match.newIndex));
 
-  let oldCursor = 0;
-  let newCursor = 0;
   const unmatchedOld = collectUnmatchedIndices(oldMiddle.length, matchedOld);
   const unmatchedNew = collectUnmatchedIndices(newMiddle.length, matchedNew);
 
-  while (oldCursor < unmatchedOld.length && newCursor < unmatchedNew.length) {
-    compare(
-      oldMiddle[unmatchedOld[oldCursor]],
-      newMiddle[unmatchedNew[newCursor]],
-      joinDiffPath(path, start + unmatchedNew[newCursor]),
-      collector,
-      runtime
-    );
-    oldCursor++;
-    newCursor++;
+  for (const oldIndex of unmatchedOld) {
+    emitArrayItemPresence(joinDiffPath(path, start + oldIndex)!, start + oldIndex, null, 'deleted', 'index', collector);
   }
 
-  while (oldCursor < unmatchedOld.length) {
-    emitArrayItemPresence(joinDiffPath(path, start + unmatchedOld[oldCursor])!, start + unmatchedOld[oldCursor], null, 'deleted', 'index', collector);
-    oldCursor++;
-  }
-
-  while (newCursor < unmatchedNew.length) {
-    emitArrayItemPresence(joinDiffPath(path, start + unmatchedNew[newCursor])!, null, start + unmatchedNew[newCursor], 'added', 'index', collector);
-    newCursor++;
+  for (const newIndex of unmatchedNew) {
+    emitArrayItemPresence(joinDiffPath(path, start + newIndex)!, null, start + newIndex, 'added', 'index', collector);
   }
 
   const matchesByNewIndex = new Map(matches.map((match) => [match.newIndex, match]));

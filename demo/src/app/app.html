@@ -228,7 +228,7 @@
 
   <section class="scenario">
     <h2>6. Arrays of Complex Objects</h2>
-    <p>This keyed-array example shows semantic moves in a table layout. Each row is an <code>items[i]</code> object, and each column highlights its own field path while the whole row can highlight when any field in that object changes.</p>
+    <p>This keyed-array example shows semantic moves in a table layout. Each row compares the same logical item on both sides, so moved rows stay aligned to their original source on the left while each column still highlights its own field path.</p>
 
     <div class="side-by-side">
       <div class="version">
@@ -246,7 +246,7 @@
 
             @for (group of itemGroups(); track group.path) {
               <div class="diff-table table-row" [diffHighlightField]="group.path" [attr.data-item-left-row]="group.path">
-                <div class="table-row-label">{{ group.path }}</div>
+                <div class="table-row-label">{{ group.leftPath ?? 'Not present' }}</div>
                 @for (column of itemColumns; track column) {
                   <div
                     class="table-cell"
@@ -280,7 +280,7 @@
 
             @for (group of itemGroups(); track group.path) {
               <div class="diff-table table-row" [diffHighlightField]="group.path" [attr.data-item-right-row]="group.path">
-                <div class="table-row-label">{{ group.path }}</div>
+                <div class="table-row-label">{{ group.rightPath ?? 'Not present' }}</div>
                 @for (column of itemColumns; track column) {
                   <div
                     class="table-cell"

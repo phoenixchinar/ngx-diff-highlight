@@ -21,6 +21,8 @@ interface ComparisonRow {
 interface ItemComparisonGroup {
   index: number;
   path: string;
+  leftPath: string | null;
+  rightPath: string | null;
   summary: string;
   movement: string;
   fields: ComparisonRow[];
@@ -96,7 +98,7 @@ export class App {
   itemDiffResult = computed(() => computeDiff(this.leftItems, this.rightItems));
   itemDiffFields = computed(() => toHighlightPaths(this.itemDiffResult()));
   readonly itemRows = computed(() => this.buildComparisonRows(this.leftItems, this.rightItems, this.itemDiffFields()));
-  readonly itemGroups = computed(() => this.buildItemGroups(this.itemRows(), this.itemDiffResult()));
+  readonly itemGroups = computed(() => this.buildItemGroups(this.itemRows(), this.itemDiffResult(), this.leftItems, this.rightItems));
   readonly itemColumns = ['id', 'name', 'enabled'];
 
   // Scenario 7: Deterministic content fallback for arrays without ids
@@ -225,9 +227,15 @@ export class App {
     }));
   }
 
-  private buildItemGroups(rows: ComparisonRow[], diffResult: ComputeDiffResult): ItemComparisonGroup[] {
+  private buildItemGroups(
+    rows: ComparisonRow[],
+    diffResult: ComputeDiffResult,
+    left: { items?: unknown[] },
+    right: { items?: unknown[] }
+  ): ItemComparisonGroup[] {
     const groups = new Map<number, ComparisonRow[]>();
     const moveEntries = new Map<number, ComputeDiffArrayItemEntry>();
+    const itemCount = Math.max(left.items?.length ?? 0, right.items?.length ?? 0);
 
     rows
       .filter((row) => row.path.startsWith('items['))
@@ -249,15 +257,47 @@ export class App {
       moveEntries.set(Number(match[1]), entry);
     });
 
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([index, fields]) => ({
+    return Array.from({ length: itemCount }, (_, index) => {
+      const fields = groups.get(index) ?? [];
+      const moveEntry = moveEntries.get(index);
+      const leftPath = this.resolveItemPath(index, 'left', moveEntry, left.items?.length ?? 0);
+      const rightPath = this.resolveItemPath(index, 'right', moveEntry, right.items?.length ?? 0);
+
+      return {
         index,
         path: `items[${index}]`,
+        leftPath,
+        rightPath,
         summary: this.summarizeItemGroup(fields),
-        movement: this.describeItemMovement(moveEntries.get(index)),
+        movement: this.describeItemMovement(moveEntry),
         fields,
-      }));
+      };
+    });
+  }
+
+  private resolveItemPath(
+    index: number,
+    side: ComparisonSide,
+    entry: ComputeDiffArrayItemEntry | undefined,
+    sideLength: number
+  ): string | null {
+    if (entry?.type === 'added' && side === 'left') {
+      return null;
+    }
+
+    if (entry?.type === 'deleted' && side === 'right') {
+      return null;
+    }
+
+    if (side === 'left' && entry?.oldIndex !== null && entry?.oldIndex !== undefined) {
+      return `items[${entry.oldIndex}]`;
+    }
+
+    if (side === 'right' && entry?.newIndex !== null && entry?.newIndex !== undefined) {
+      return `items[${entry.newIndex}]`;
+    }
+
+    return index < sideLength ? `items[${index}]` : null;
   }
 
   private summarizeItemGroup(fields: ComparisonRow[]): string {
@@ -294,12 +334,19 @@ export class App {
   }
 
   getItemFieldValue(group: ItemComparisonGroup, key: string, side: ComparisonSide): string {
+    const path = side === 'left' ? group.leftPath : group.rightPath;
+    if (!path) {
+      return 'Not present';
+    }
+
     const field = group.fields.find((row) => row.path === `${group.path}.${key}`);
     if (!field) {
       return 'Not present';
     }
 
-    return side === 'left' ? field.leftValue : field.rightValue;
+    return side === 'left'
+      ? this.formatValue(this.readPath(this.leftItems, `${path}.${key}`))
+      : this.formatValue(this.readPath(this.rightItems, `${path}.${key}`));
   }
 
   private collectLeafPaths(value: unknown, path: string | null = null): string[] {

@@ -91,6 +91,10 @@ describe('App', () => {
     expect(compiled.textContent).toContain('enabled');
     expect(compiled.textContent).toContain('Moved from items[1]');
     expect(compiled.textContent).toContain('Moved from items[0]');
+    expect(compiled.querySelector('[data-item-left="items[0].id"]')?.textContent).toContain('2');
+    expect(compiled.querySelector('[data-item-left="items[0].name"]')?.textContent).toContain('Beta');
+    expect(compiled.querySelector('[data-item-left-row="items[0]"] .table-row-label')?.textContent).toContain('items[1]');
+    expect(compiled.querySelector('[data-item-right-row="items[0]"] .table-row-label')?.textContent).toContain('items[0]');
     expect(compiled.querySelector('[data-item-right="items[2].name"]')).toBeTruthy();
     expect(compiled.querySelector('[data-item-right-row="items[1]"] .table-status')?.textContent).toContain('UNCHANGED');
     expect(compiled.querySelector('[data-fallback-index="users[0].name"]')?.classList.contains('diff-highlight')).toBe(true);

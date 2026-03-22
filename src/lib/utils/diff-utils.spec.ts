@@ -165,6 +165,53 @@ describe('diff-utils', () => {
         ]);
       });
 
+      it('treats unmatched remainder as added and deleted once built-in identity matching is used', () => {
+        const result = computeDiff(
+          {
+            users: [
+              { id: 1, name: 'Alice' },
+              { id: 2, name: 'Bob' },
+            ],
+          },
+          {
+            users: [
+              { id: 3, name: 'Carol' },
+              { id: 1, name: 'Alice' },
+            ],
+          }
+        );
+
+        expect(result.entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'users[1]',
+            type: 'deleted',
+            oldIndex: 1,
+            newIndex: null,
+            matchSource: 'index',
+            highlightFields: [],
+          },
+          {
+            kind: 'array-item',
+            path: 'users[0]',
+            type: 'added',
+            oldIndex: null,
+            newIndex: 0,
+            matchSource: 'index',
+            highlightFields: [],
+          },
+          {
+            kind: 'array-item',
+            path: 'users[1]',
+            type: 'moved',
+            oldIndex: 0,
+            newIndex: 1,
+            matchSource: 'built-in',
+            highlightFields: [],
+          },
+        ]);
+      });
+
       it('supports nested identity rules by wildcard path', () => {
         const result = computeDiff(
           {
@@ -210,6 +257,71 @@ describe('diff-utils', () => {
             highlightFields: [{ path: 'orders[0].lines[0].qty', type: 'changed' }],
           },
           { kind: 'field', path: 'orders[0].lines[0].qty', type: 'changed' },
+          {
+            kind: 'array-item',
+            path: 'orders[0].lines[1]',
+            type: 'moved',
+            oldIndex: 0,
+            newIndex: 1,
+            matchSource: 'path-rule',
+            highlightFields: [],
+          },
+        ]);
+      });
+
+      it('treats unmatched remainder as added and deleted once path-rule matching is used', () => {
+        const result = computeDiff(
+          {
+            orders: [
+              {
+                orderId: 'o1',
+                lines: [
+                  { lineId: 'l1', sku: 'A' },
+                  { lineId: 'l2', sku: 'B' },
+                ],
+              },
+            ],
+          },
+          {
+            orders: [
+              {
+                orderId: 'o1',
+                lines: [
+                  { lineId: 'l3', sku: 'C' },
+                  { lineId: 'l1', sku: 'A' },
+                ],
+              },
+            ],
+          },
+          {
+            arrayMatching: {
+              identityByPath: {
+                'orders[]': 'orderId',
+                'orders[].lines[]': 'lineId',
+              },
+            },
+          }
+        );
+
+        expect(result.entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'orders[0].lines[1]',
+            type: 'deleted',
+            oldIndex: 1,
+            newIndex: null,
+            matchSource: 'index',
+            highlightFields: [],
+          },
+          {
+            kind: 'array-item',
+            path: 'orders[0].lines[0]',
+            type: 'added',
+            oldIndex: null,
+            newIndex: 0,
+            matchSource: 'index',
+            highlightFields: [],
+          },
           {
             kind: 'array-item',
             path: 'orders[0].lines[1]',
@@ -279,6 +391,71 @@ describe('diff-utils', () => {
         ]);
       });
 
+      it('treats unmatched remainder as added and deleted once callback matching is used', () => {
+        const result = computeDiff(
+          {
+            groups: [
+              {
+                members: [
+                  { code: 'a', name: 'Alpha' },
+                  { code: 'b', name: 'Beta' },
+                ],
+              },
+            ],
+          },
+          {
+            groups: [
+              {
+                members: [
+                  { code: 'c', name: 'Gamma' },
+                  { code: 'a', name: 'Alpha' },
+                ],
+              },
+            ],
+          },
+          {
+            arrayMatching: {
+              getIdentity: (item, context) => {
+                if (context.wildcardArrayPath === 'groups[].members[]' && item && typeof item === 'object' && 'code' in item) {
+                  return (item as { code: string }).code;
+                }
+                return null;
+              },
+            },
+          }
+        );
+
+        expect(result.entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'groups[0].members[1]',
+            type: 'deleted',
+            oldIndex: 1,
+            newIndex: null,
+            matchSource: 'index',
+            highlightFields: [],
+          },
+          {
+            kind: 'array-item',
+            path: 'groups[0].members[0]',
+            type: 'added',
+            oldIndex: null,
+            newIndex: 0,
+            matchSource: 'index',
+            highlightFields: [],
+          },
+          {
+            kind: 'array-item',
+            path: 'groups[0].members[1]',
+            type: 'moved',
+            oldIndex: 0,
+            newIndex: 1,
+            matchSource: 'callback',
+            highlightFields: [],
+          },
+        ]);
+      });
+
       it('uses automatic fingerprint matching for smaller non-keyed object arrays', () => {
         const result = computeDiff(
           {
@@ -317,6 +494,53 @@ describe('diff-utils', () => {
         ]);
       });
 
+      it('treats unmatched remainder as added and deleted once fingerprint matching is used', () => {
+        const result = computeDiff(
+          {
+            users: [
+              { name: 'Alice', role: 'Admin' },
+              { name: 'Bob', role: 'Editor' },
+            ],
+          },
+          {
+            users: [
+              { name: 'Carol', role: 'Viewer' },
+              { role: 'Admin', name: 'Alice' },
+            ],
+          }
+        );
+
+        expect(result.entries).toEqual([
+          {
+            kind: 'array-item',
+            path: 'users[1]',
+            type: 'deleted',
+            oldIndex: 1,
+            newIndex: null,
+            matchSource: 'index',
+            highlightFields: [],
+          },
+          {
+            kind: 'array-item',
+            path: 'users[0]',
+            type: 'added',
+            oldIndex: null,
+            newIndex: 0,
+            matchSource: 'index',
+            highlightFields: [],
+          },
+          {
+            kind: 'array-item',
+            path: 'users[1]',
+            type: 'moved',
+            oldIndex: 0,
+            newIndex: 1,
+            matchSource: 'fingerprint',
+            highlightFields: [],
+          },
+        ]);
+      });
+
       it('falls back to index mode when explicitly requested', () => {
         const result = computeDiff(
           {
@@ -340,6 +564,35 @@ describe('diff-utils', () => {
 
         expect(result.entries).toEqual([
           { kind: 'field', path: 'users[0].name', type: 'changed' },
+          { kind: 'field', path: 'users[1].name', type: 'changed' },
+        ]);
+      });
+
+      it('keeps positional compare for replacements in explicit index mode', () => {
+        const result = computeDiff(
+          {
+            users: [
+              { id: 1, name: 'Alice' },
+              { id: 2, name: 'Bob' },
+            ],
+          },
+          {
+            users: [
+              { id: 3, name: 'Carol' },
+              { id: 1, name: 'Alice' },
+            ],
+          },
+          {
+            arrayMatching: {
+              mode: 'index',
+            },
+          }
+        );
+
+        expect(result.entries).toEqual([
+          { kind: 'field', path: 'users[0].id', type: 'changed' },
+          { kind: 'field', path: 'users[0].name', type: 'changed' },
+          { kind: 'field', path: 'users[1].id', type: 'changed' },
           { kind: 'field', path: 'users[1].name', type: 'changed' },
         ]);
       });
