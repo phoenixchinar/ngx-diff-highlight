@@ -71,6 +71,36 @@ describe('App', () => {
     expect(compiled.querySelector('[data-role-path="roles[1]"].diff-highlight')).toBeTruthy();
   });
 
+  it('should compute live detail diffs from nested form controls', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    let compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-live-detail="profile.firstName"]')?.classList.contains('diff-highlight')).toBe(false);
+    expect(compiled.querySelector('[data-live-detail="profile.contacts[1].value"]')?.classList.contains('diff-highlight')).toBe(false);
+
+    const firstNameInput = compiled.querySelector('[data-live-control="profile.firstName"]') as HTMLInputElement;
+    firstNameInput.value = 'Janet';
+    firstNameInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-live-detail="profile.firstName"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.querySelector('[data-live-control-row="profile.firstName"]')?.classList.contains('diff-highlight')).toBe(true);
+
+    const contactInput = compiled.querySelector('[data-live-control="profile.contacts[1].value"]') as HTMLInputElement;
+    contactInput.value = '(555) 000-0000';
+    contactInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('[data-live-detail="profile.contacts[1].value"]')?.classList.contains('diff-highlight')).toBe(true);
+    expect(compiled.querySelector('[data-live-control-row="profile.contacts[1].value"]')?.classList.contains('diff-highlight')).toBe(true);
+  });
+
   it('should show the current computeDiff array behavior note and handle invalid json', async () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;

@@ -88,6 +88,24 @@ class MockControlContainerPathComponent {
   @ViewChild('groupDir', { read: DiffHighlightGroupDirective }) groupDir!: DiffHighlightGroupDirective;
 }
 
+@Component({
+  template: `<div diffHighlightGroup #groupDir></div>`,
+  standalone: true,
+  imports: [DiffHighlightGroupDirective],
+  providers: [
+    {
+      provide: ControlContainer,
+      useValue: {
+        name: 0,
+        path: ['items', '0']
+      }
+    }
+  ]
+})
+class MockNumericControlContainerComponent {
+  @ViewChild('groupDir', { read: DiffHighlightGroupDirective }) groupDir!: DiffHighlightGroupDirective;
+}
+
 describe('PathContextDirectives', () => {
   describe('Basic Composition', () => {
     let fixture: ComponentFixture<TestComponent>;
@@ -176,6 +194,20 @@ describe('PathContextDirectives', () => {
 
       expect(mockComponent.groupDir.segment).toBe('profile.address');
       expect(mockComponent.groupDir.getPath()).toBe('profile.address');
+    });
+
+    it('should preserve numeric control names such as array index 0', async () => {
+      await TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [MockNumericControlContainerComponent]
+      }).compileComponents();
+
+      const mockFixture = TestBed.createComponent(MockNumericControlContainerComponent);
+      const mockComponent = mockFixture.componentInstance;
+      mockFixture.detectChanges();
+
+      expect(mockComponent.groupDir.segment).toBe(0);
+      expect(mockComponent.groupDir.getPath()).toBe('[0]');
     });
   });
 });

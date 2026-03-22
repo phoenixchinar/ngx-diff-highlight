@@ -1,6 +1,7 @@
-import { Component, signal, computed, inject } from '@angular/core';
+import { Component, signal, computed, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   ComputeDiffArrayItemEntry,
   ComputeDiffResult,
@@ -45,6 +46,7 @@ interface ParsedJsonState {
 })
 export class App {
   private fb = inject(FormBuilder);
+  private destroyRef = inject(DestroyRef);
 
   // Scenario 1: Basic Detail View
   basicFields = signal<DiffHighlightInput[]>(['contact.email']);
@@ -58,6 +60,26 @@ export class App {
   // Scenario 3: Multiple Scopes
   scope1Fields = signal<DiffHighlightInput[]>(['title', 'description']);
   scope2Fields = signal<DiffHighlightInput[]>(['title', 'status']);
+
+  // Scenario 3b: Live detail editor
+  readonly editableBaseline = {
+    profile: {
+      firstName: 'Jane',
+      lastName: 'Doe',
+      address: {
+        city: 'Phoenix',
+        zip: '85004',
+      },
+      contacts: [
+        { label: 'Work', value: 'jane@example.com' },
+        { label: 'Phone', value: '(555) 123-4567' },
+      ],
+    },
+  };
+  editableForm: FormGroup;
+  editableCurrentValue = signal(this.editableBaseline);
+  editableDiffResult = computed(() => computeDiff(this.editableBaseline, this.editableCurrentValue()));
+  editableDiffFields = computed(() => toHighlightPaths(this.editableDiffResult()));
 
   // Scenario 4: Visual Diff (Added, Changed, Deleted)
   leftObj = {
@@ -173,10 +195,39 @@ export class App {
         this.fb.control('Editor')
       ])
     });
+
+    this.editableForm = this.fb.group({
+      profile: this.fb.group({
+        firstName: [this.editableBaseline.profile.firstName],
+        lastName: [this.editableBaseline.profile.lastName],
+        address: this.fb.group({
+          city: [this.editableBaseline.profile.address.city],
+          zip: [this.editableBaseline.profile.address.zip],
+        }),
+        contacts: this.fb.array(
+          this.editableBaseline.profile.contacts.map((contact) =>
+            this.fb.group({
+              label: [contact.label],
+              value: [contact.value],
+            })
+          )
+        ),
+      }),
+    });
+
+    this.editableForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.editableCurrentValue.set(this.editableForm.getRawValue() as typeof this.editableBaseline);
+      });
   }
 
   get roles() {
     return this.form.get('roles') as FormArray;
+  }
+
+  get editableContacts() {
+    return this.editableForm.get('profile.contacts') as FormArray;
   }
 
   showBasicFields(fields: DiffHighlightInput[]) {

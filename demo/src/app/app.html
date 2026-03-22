@@ -145,6 +145,113 @@
     </div>
   </section>
 
+  <section class="scenario">
+    <h2>3b. Live Detail Editor</h2>
+    <p>The left side is a read-only detail view. The right side is an editable form with nested groups and an array. As you type, <code>computeDiff()</code> recalculates the active paths and both sides update immediately.</p>
+
+    <div class="side-by-side">
+      <div class="version">
+        <h3>Detail View</h3>
+        <diff-highlight-scope [fields]="editableDiffFields()" cssPrefix="left">
+          <div class="card detail-card">
+            <div diffHighlightGroup="profile" class="detail-section" [diffHighlightField]="'profile'">
+              <div class="detail-title">Profile</div>
+              <div class="field-row" [diffHighlightField]="'profile.firstName'" data-live-detail="profile.firstName">
+                <span class="label">profile.firstName</span>
+                <span class="value">{{ editableBaseline.profile.firstName }}</span>
+                <span class="diff-tag">Static</span>
+              </div>
+              <div class="field-row" [diffHighlightField]="'profile.lastName'" data-live-detail="profile.lastName">
+                <span class="label">profile.lastName</span>
+                <span class="value">{{ editableBaseline.profile.lastName }}</span>
+                <span class="diff-tag">Static</span>
+              </div>
+
+              <div diffHighlightGroup="address" class="detail-subsection" [diffHighlightField]="'profile.address'">
+                <div class="detail-subtitle">Address</div>
+                <div class="field-row" [diffHighlightField]="'profile.address.city'" data-live-detail="profile.address.city">
+                  <span class="label">profile.address.city</span>
+                  <span class="value">{{ editableBaseline.profile.address.city }}</span>
+                  <span class="diff-tag">Static</span>
+                </div>
+                <div class="field-row" [diffHighlightField]="'profile.address.zip'" data-live-detail="profile.address.zip">
+                  <span class="label">profile.address.zip</span>
+                  <span class="value">{{ editableBaseline.profile.address.zip }}</span>
+                  <span class="diff-tag">Static</span>
+                </div>
+              </div>
+
+              <div diffHighlightGroup="contacts" class="detail-subsection" [diffHighlightField]="'profile.contacts'">
+                <div class="detail-subtitle">Contacts</div>
+                @for (contact of editableBaseline.profile.contacts; track $index) {
+                  <div [diffHighlightArray]="$index" class="detail-array-row" [diffHighlightField]="'profile.contacts[' + $index + ']'">
+                    <div class="field-row" [diffHighlightField]="'profile.contacts[' + $index + '].label'" [attr.data-live-detail]="'profile.contacts[' + $index + '].label'">
+                      <span class="label">{{ 'profile.contacts[' + $index + '].label' }}</span>
+                      <span class="value">{{ contact.label }}</span>
+                      <span class="diff-tag">Static</span>
+                    </div>
+                    <div class="field-row" [diffHighlightField]="'profile.contacts[' + $index + '].value'" [attr.data-live-detail]="'profile.contacts[' + $index + '].value'">
+                      <span class="label">{{ 'profile.contacts[' + $index + '].value' }}</span>
+                      <span class="value">{{ contact.value }}</span>
+                      <span class="diff-tag">Static</span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </diff-highlight-scope>
+      </div>
+
+      <div class="version">
+        <h3>Controls</h3>
+        <diff-highlight-scope [fields]="editableDiffFields()" cssPrefix="right">
+          <form [formGroup]="editableForm" class="card detail-card">
+            <div diffHighlightGroup="profile" formGroupName="profile" class="detail-section" [diffHighlightField]="'profile'">
+              <div class="detail-title">Editable Profile</div>
+              <div class="control-row" [diffHighlightField]="'profile.firstName'" data-live-control-row="profile.firstName">
+                <label for="editable-first-name">profile.firstName</label>
+                <input id="editable-first-name" formControlName="firstName" data-live-control="profile.firstName">
+              </div>
+              <div class="control-row" [diffHighlightField]="'profile.lastName'" data-live-control-row="profile.lastName">
+                <label for="editable-last-name">profile.lastName</label>
+                <input id="editable-last-name" formControlName="lastName" data-live-control="profile.lastName">
+              </div>
+
+              <div diffHighlightGroup="address" formGroupName="address" class="detail-subsection" [diffHighlightField]="'profile.address'">
+                <div class="detail-subtitle">Address</div>
+                <div class="control-row" [diffHighlightField]="'profile.address.city'" data-live-control-row="profile.address.city">
+                  <label for="editable-city">profile.address.city</label>
+                  <input id="editable-city" formControlName="city" data-live-control="profile.address.city">
+                </div>
+                <div class="control-row" [diffHighlightField]="'profile.address.zip'" data-live-control-row="profile.address.zip">
+                  <label for="editable-zip">profile.address.zip</label>
+                  <input id="editable-zip" formControlName="zip" data-live-control="profile.address.zip">
+                </div>
+              </div>
+
+              <div diffHighlightGroup="contacts" formArrayName="contacts" class="detail-subsection" [diffHighlightField]="'profile.contacts'">
+                <div class="detail-subtitle">Contacts</div>
+                @for (contact of editableContacts.controls; track $index) {
+                  <div [diffHighlightArray]="$index" [formGroupName]="$index" class="detail-array-row" [diffHighlightField]="'profile.contacts[' + $index + ']'">
+                    <div class="control-row" [diffHighlightField]="'profile.contacts[' + $index + '].label'" [attr.data-live-control-row]="'profile.contacts[' + $index + '].label'">
+                      <label [for]="'editable-contact-label-' + $index">{{ 'profile.contacts[' + $index + '].label' }}</label>
+                      <input [id]="'editable-contact-label-' + $index" formControlName="label" [attr.data-live-control]="'profile.contacts[' + $index + '].label'">
+                    </div>
+                    <div class="control-row" [diffHighlightField]="'profile.contacts[' + $index + '].value'" [attr.data-live-control-row]="'profile.contacts[' + $index + '].value'">
+                      <label [for]="'editable-contact-value-' + $index">{{ 'profile.contacts[' + $index + '].value' }}</label>
+                      <input [id]="'editable-contact-value-' + $index" formControlName="value" [attr.data-live-control]="'profile.contacts[' + $index + '].value'">
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </form>
+        </diff-highlight-scope>
+      </div>
+    </div>
+  </section>
+
   <!-- Scenario 4: Visual Diff -->
   <section class="scenario">
     <h2>4. Visual Diff Representation & Prefixes</h2>

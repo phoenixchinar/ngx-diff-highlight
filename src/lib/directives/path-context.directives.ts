@@ -49,9 +49,11 @@ export class DiffHighlightGroupDirective extends DiffHighlightPathDirective {
       return this.groupName;
     }
     if (this.controlContainer) {
-      return (
-        this.controlContainer.name || (this.controlContainer.path ? this.controlContainer.path.join('.') : null)
-      );
+      const controlName = this.controlContainer.name;
+      if (controlName !== null && controlName !== undefined && controlName !== '') {
+        return controlName;
+      }
+      return this.controlContainer.path ? this.controlContainer.path.join('.') : null;
     }
     return null;
   }

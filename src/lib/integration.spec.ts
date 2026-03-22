@@ -92,6 +92,54 @@ class CompatibilityTestComponent {
   fields: DiffHighlightInput[] = [];
 }
 
+// Scenario 5: Nested FormArray with implicit numeric ControlContainer names
+@Component({
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, DiffHighlightModule],
+  template: `
+    <div [diffHighlightScope]="diffFields">
+      <form [formGroup]="form">
+        <div formArrayName="items" diffHighlightGroup="items">
+          @for (item of items.controls; track i; let i = $index) {
+            <div [formGroupName]="i" diffHighlightGroup>
+              <div formArrayName="tags" diffHighlightGroup="tags">
+                @for (tag of getTags(i).controls; track j; let j = $index) {
+                  <div [formGroupName]="j" diffHighlightGroup>
+                    <input formControlName="label" diffHighlightName="label" diffHighlightField [attr.data-tag-input]="i + '-' + j">
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </form>
+    </div>
+  `
+})
+class NestedFormArrayControlNameTestComponent {
+  diffFields: DiffHighlightInput[] = [];
+  form = new FormGroup({
+    items: new FormArray([
+      new FormGroup({
+        tags: new FormArray([
+          new FormGroup({ label: new FormControl('item 0 tag 0') }),
+          new FormGroup({ label: new FormControl('item 0 tag 1') })
+        ])
+      }),
+      new FormGroup({
+        tags: new FormArray([
+          new FormGroup({ label: new FormControl('item 1 tag 0') })
+        ])
+      })
+    ])
+  });
+
+  get items() { return this.form.get('items') as FormArray; }
+  getTags(index: number) {
+    return this.items.at(index).get('tags') as FormArray;
+  }
+}
+
 describe('DiffHighlight Integration', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -212,6 +260,32 @@ describe('DiffHighlight Integration', () => {
       fixture.detectChanges();
       await fixture.whenStable();
       expect(emailInput.classList.contains('diff-highlight')).toBe(true);
+    });
+  });
+
+  describe('Nested FormArray with implicit numeric control names', () => {
+    it('should resolve nested array indexes without duplicating parent paths', async () => {
+      const fixture = TestBed.createComponent(NestedFormArrayControlNameTestComponent);
+      const component = fixture.componentInstance;
+      component.diffFields = ['items[0].tags[0].label'];
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      const tag00 = fixture.nativeElement.querySelector('[data-tag-input="0-0"]');
+      const tag01 = fixture.nativeElement.querySelector('[data-tag-input="0-1"]');
+      const tag10 = fixture.nativeElement.querySelector('[data-tag-input="1-0"]');
+
+      expect(tag00.classList.contains('diff-highlight')).toBe(true);
+      expect(tag01.classList.contains('diff-highlight')).toBe(false);
+      expect(tag10.classList.contains('diff-highlight')).toBe(false);
+
+      component.diffFields = ['items[0].tags[1]'];
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(tag00.classList.contains('diff-highlight')).toBe(false);
+      expect(tag01.classList.contains('diff-highlight')).toBe(true);
+      expect(tag10.classList.contains('diff-highlight')).toBe(false);
     });
   });
 });
