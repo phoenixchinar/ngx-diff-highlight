@@ -68,6 +68,11 @@ describe('DiffHighlightService', () => {
         { path: 'items[0]', type: 'none' }
       ]);
     });
+
+    it('should default structured fields without a type to none', async () => {
+      service.setFields([{ path: 'user.name' }]);
+      expect(await firstValueFrom(service.fields$)).toEqual([{ path: 'user.name', type: 'none' }]);
+    });
   });
 
   describe('clear', () => {
@@ -92,6 +97,20 @@ describe('DiffHighlightService', () => {
         { path: 'items[0]', type: 'none' }
       ]);
     });
+
+    it('should ignore null and invalid fields', async () => {
+      service.addField(null);
+      service.addField(undefined);
+      service.addField('   ');
+      service.addField({ path: '', type: 'changed' });
+
+      expect(await firstValueFrom(service.fields$)).toEqual([]);
+    });
+
+    it('should default structured additions without a type to none', async () => {
+      service.addField({ path: 'user.email' });
+      expect(await firstValueFrom(service.fields$)).toEqual([{ path: 'user.email', type: 'none' }]);
+    });
   });
 
   describe('removeField', () => {
@@ -104,6 +123,22 @@ describe('DiffHighlightService', () => {
       service.removeField('items.0');
       expect(await firstValueFrom(service.fields$)).toEqual([]);
     });
+
+    it('should ignore null, invalid, and missing paths', async () => {
+      service.setFields(['user.name']);
+
+      service.removeField(null);
+      service.removeField(undefined);
+      service.removeField('   ');
+      service.removeField('user.email');
+
+      expect(await firstValueFrom(service.fields$)).toEqual([{ path: 'user.name', type: 'none' }]);
+    });
+  });
+
+  it('should expose a mutable cssPrefix for scoped consumers', () => {
+    service.cssPrefix = 'left';
+    expect(service.cssPrefix).toBe('left');
   });
 
   describe('ngOnDestroy', () => {

@@ -6,7 +6,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { DiffHighlightFieldDirective } from './diff-highlight-field.directive';
 import { DiffHighlightService } from '../services/diff-highlight.service';
 import { DIFF_HIGHLIGHT_CONFIG, DIFF_HIGHLIGHT_PATH_CONTEXT } from '../tokens/diff-highlight.tokens';
-import { DiffHighlightPathContext, DiffFieldPathObject } from '../models/diff-highlight.models';
+import { DiffHighlightMatchEvent, DiffHighlightPathContext, DiffFieldPathObject } from '../models/diff-highlight.models';
 
 // Mock Component for basic tests
 @Component({
@@ -43,6 +43,23 @@ class NgControlTestComponent {}
   imports: [DiffHighlightFieldDirective],
 })
 class ContextTestComponent {}
+
+@Component({
+  template: `
+    <div
+      id="field1"
+      diffHighlightField
+      (fieldInDiff)="fieldInDiffEvents.push($event)"
+      (highlightMatch)="matchEvents.push($event)">
+    </div>
+  `,
+  standalone: true,
+  imports: [DiffHighlightFieldDirective],
+})
+class EventTestComponent {
+  fieldInDiffEvents: boolean[] = [];
+  matchEvents: DiffHighlightMatchEvent[] = [];
+}
 
 describe('DiffHighlightFieldDirective', () => {
   let fields$: BehaviorSubject<DiffFieldPathObject[]>;
@@ -182,5 +199,89 @@ describe('DiffHighlightFieldDirective', () => {
 
     const el = fixture.debugElement.query(By.css('#field1')).nativeElement;
     expect(el.classList.contains('highlight-diff')).toBe(false);
+  });
+
+  it('should emit field and match events when highlight state changes', async () => {
+    await TestBed.configureTestingModule({
+      imports: [EventTestComponent],
+      providers: [
+        { provide: DiffHighlightService, useValue: mockService },
+        { provide: DIFF_HIGHLIGHT_CONFIG, useValue: { highlightClass: 'hl', secondaryClass: 'sec' } },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(EventTestComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    fields$.next([{ path: 'field1', type: 'deleted' }]);
+    fixture.detectChanges();
+
+    fields$.next([]);
+    fixture.detectChanges();
+
+    expect(component.fieldInDiffEvents).toEqual([false, true, false]);
+    expect(component.matchEvents).toEqual([
+      { path: 'field1', highlighted: false, type: 'none' },
+      { path: 'field1', highlighted: true, type: 'deleted' },
+      { path: 'field1', highlighted: false, type: 'none' },
+    ]);
+  });
+
+  it('should respect a custom path matcher from config', async () => {
+    await TestBed.configureTestingModule({
+      imports: [TestComponent],
+      providers: [
+        { provide: DiffHighlightService, useValue: mockService },
+        {
+          provide: DIFF_HIGHLIGHT_CONFIG,
+          useValue: {
+            highlightClass: 'hl',
+            secondaryClass: 'sec',
+            pathMatcher: (resolvedPath: string | null, diffPath: string) =>
+              resolvedPath === 'field1' && diffPath === 'field1.alias',
+          }
+        },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(TestComponent);
+    fixture.detectChanges();
+
+    const idEl = fixture.debugElement.query(By.css('#field1')).nativeElement;
+    fields$.next([{ path: 'field1.alias', type: 'changed' }]);
+    fixture.detectChanges();
+
+    expect(idEl.classList.contains('hl')).toBe(true);
+    expect(idEl.classList.contains('changed')).toBe(true);
+  });
+
+  it('should clear classes and emit a null path event when no path can be resolved', async () => {
+    @Component({
+      template: `<div diffHighlightField (highlightMatch)="events.push($event)"></div>`,
+      standalone: true,
+      imports: [DiffHighlightFieldDirective],
+    })
+    class NoPathComponent {
+      events: DiffHighlightMatchEvent[] = [];
+    }
+
+    await TestBed.configureTestingModule({
+      imports: [NoPathComponent],
+      providers: [
+        { provide: DiffHighlightService, useValue: mockService },
+        { provide: DIFF_HIGHLIGHT_CONFIG, useValue: { highlightClass: 'hl', secondaryClass: 'sec' } },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(NoPathComponent);
+    fixture.detectChanges();
+
+    fields$.next([{ path: 'other.path', type: 'changed' }]);
+    fixture.detectChanges();
+
+    const el = fixture.debugElement.query(By.directive(DiffHighlightFieldDirective)).nativeElement;
+    expect(el.classList.contains('hl')).toBe(false);
+    expect(fixture.componentInstance.events.at(-1)).toEqual({ path: null, highlighted: false, type: 'none' });
   });
 });

@@ -1,6 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormGroup, FormControl, ReactiveFormsModule, ControlContainer } from '@angular/forms';
 import { 
   DiffHighlightGroupDirective, 
   DiffHighlightArrayDirective, 
@@ -56,6 +56,38 @@ class ControlContainerTestComponent {
   @ViewChild('nameDir', { read: DiffHighlightNameDirective }) nameDir!: DiffHighlightNameDirective;
 }
 
+
+@Component({
+  template: `
+    <div diffHighlightGroup #emptyGroup></div>
+    <div [appHighlightFieldArray]="2" #aliasArray></div>
+  `,
+  standalone: true,
+  imports: [DiffHighlightGroupDirective, DiffHighlightArrayDirective],
+})
+class NullPathTestComponent {
+  @ViewChild('emptyGroup', { read: DiffHighlightGroupDirective }) emptyGroup!: DiffHighlightGroupDirective;
+  @ViewChild('aliasArray', { read: DiffHighlightArrayDirective }) aliasArray!: DiffHighlightArrayDirective;
+}
+
+@Component({
+  template: `<div diffHighlightGroup #groupDir></div>`,
+  standalone: true,
+  imports: [DiffHighlightGroupDirective],
+  providers: [
+    {
+      provide: ControlContainer,
+      useValue: {
+        name: '',
+        path: ['profile', 'address']
+      }
+    }
+  ]
+})
+class MockControlContainerPathComponent {
+  @ViewChild('groupDir', { read: DiffHighlightGroupDirective }) groupDir!: DiffHighlightGroupDirective;
+}
+
 describe('PathContextDirectives', () => {
   describe('Basic Composition', () => {
     let fixture: ComponentFixture<TestComponent>;
@@ -99,6 +131,51 @@ describe('PathContextDirectives', () => {
     it('should resolve segment from ControlContainer if groupName is not provided', () => {
       expect(component.groupDir.getPath()).toBe('profile');
       expect(component.nameDir.getPath()).toBe('profile.username');
+    });
+
+    it('should prefer an explicit group name over ControlContainer', () => {
+      component.groupDir.groupName = 'override';
+      expect(component.groupDir.segment).toBe('override');
+      expect(component.groupDir.getPath()).toBe('override');
+    });
+  });
+
+  describe('Null and Alias Segments', () => {
+    let fixture: ComponentFixture<NullPathTestComponent>;
+    let component: NullPathTestComponent;
+
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
+        imports: [NullPathTestComponent]
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(NullPathTestComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+    });
+
+    it('should return null when no parent and no segment are available', () => {
+      expect(component.emptyGroup.segment).toBeNull();
+      expect(component.emptyGroup.getPath()).toBeNull();
+    });
+
+    it('should support the array alias input', () => {
+      expect(component.aliasArray.segment).toBe(2);
+      expect(component.aliasArray.getPath()).toBe('[2]');
+    });
+
+    it('should use ControlContainer.path when name is empty', async () => {
+      await TestBed.resetTestingModule();
+      await TestBed.configureTestingModule({
+        imports: [MockControlContainerPathComponent]
+      }).compileComponents();
+
+      const mockFixture = TestBed.createComponent(MockControlContainerPathComponent);
+      const mockComponent = mockFixture.componentInstance;
+      mockFixture.detectChanges();
+
+      expect(mockComponent.groupDir.segment).toBe('profile.address');
+      expect(mockComponent.groupDir.getPath()).toBe('profile.address');
     });
   });
 });

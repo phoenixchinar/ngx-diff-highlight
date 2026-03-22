@@ -63,6 +63,40 @@ describe('DiffHighlightScopeComponent', () => {
     sub.unsubscribe();
   });
 
+  it('should propagate cssPrefix to the scoped service', async () => {
+    component.fields = ['user.name'];
+    component.cssPrefix = 'left';
+    component.ngOnChanges({
+      cssPrefix: {
+        currentValue: 'left',
+        previousValue: undefined,
+        firstChange: true,
+        isFirstChange: () => true,
+      },
+      fields: {
+        currentValue: ['user.name'],
+        previousValue: undefined,
+        firstChange: true,
+        isFirstChange: () => true,
+      },
+    });
+    await fixture.whenStable();
+
+    expect(service.cssPrefix).toBe('left');
+  });
+
+  it('should ignore unrelated changes objects', async () => {
+    component.fields = ['user.name'];
+    component.ngOnChanges({});
+    await fixture.whenStable();
+
+    let fields: DiffFieldPathObject[] = [];
+    const sub = service.fields$.subscribe((f: DiffFieldPathObject[]) => (fields = f));
+    expect(fields).toEqual([]);
+    expect(service.cssPrefix).toBe('');
+    sub.unsubscribe();
+  });
+
   it('should handle multiple selectors', async () => {
     @Component({
       template: `
@@ -149,6 +183,41 @@ describe('DiffHighlightScopeDirective', () => {
     let fields: DiffFieldPathObject[] = [];
     const sub = child.service.fields$.subscribe((f: DiffFieldPathObject[]) => (fields = f));
     expect(fields).toEqual([{ path: 'updated', type: 'none' }]);
+    sub.unsubscribe();
+  });
+
+  it('should propagate cssPrefix through the directive scope', async () => {
+    @Component({
+      template: `
+        <div [diffHighlightScope]="['initial']" cssPrefix="right">
+          <app-child-component></app-child-component>
+        </div>
+      `,
+      standalone: true,
+      imports: [DiffHighlightScopeDirective, ChildComponent],
+    })
+    class CssPrefixHostComponent {}
+
+    const prefixFixture = TestBed.createComponent(CssPrefixHostComponent);
+    prefixFixture.detectChanges();
+    await prefixFixture.whenStable();
+
+    const child = prefixFixture.debugElement.query(By.directive(ChildComponent)).componentInstance as ChildComponent;
+    expect(child.service.cssPrefix).toBe('right');
+  });
+
+  it('should ignore unrelated directive changes objects', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const directive = fixture.debugElement.query(By.directive(DiffHighlightScopeDirective)).injector.get(DiffHighlightScopeDirective);
+    directive.ngOnChanges({});
+    await fixture.whenStable();
+
+    const child = fixture.debugElement.query(By.directive(ChildComponent)).componentInstance as ChildComponent;
+    let fields: DiffFieldPathObject[] = [];
+    const sub = child.service.fields$.subscribe((f: DiffFieldPathObject[]) => (fields = f));
+    expect(fields).toEqual([{ path: 'initial', type: 'none' }]);
     sub.unsubscribe();
   });
 
