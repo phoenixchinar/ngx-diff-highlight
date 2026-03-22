@@ -90,7 +90,8 @@ Use these expectations:
 
 - Coverage is measured with `npm run test:coverage`.
 - Do not hardcode aspirational coverage numbers in docs or badges.
-- If the reported coverage changes materially, update any referenced badge or documentation to match the current measured result.
+- The README coverage badge is generated automatically during the GitHub Pages deploy from `coverage/ngx-diff-highlight/coverage-final.json` via `scripts/generate-coverage-badge.mjs`.
+- If coverage output paths or deploy behavior change, update that script and `.github/workflows/deploy.yml` together.
 
 ## Review Checklist
 

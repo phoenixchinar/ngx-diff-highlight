@@ -30,6 +30,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run coverage
+        run: npm run test:coverage
+
+      - name: Generate coverage badge payload
+        run: node scripts/generate-coverage-badge.mjs
+
       - name: Build Library
         run: npx ng build ngx-diff-highlight
 

@@ -241,11 +241,14 @@
                 <div>{{ column }}</div>
               }
               <div>Status</div>
-              <div>Move</div>
             </div>
 
             @for (group of itemGroups(); track group.path) {
-              <div class="diff-table table-row" [diffHighlightField]="group.path" [attr.data-item-left-row]="group.path">
+              <div
+                class="diff-table table-row"
+                [diffHighlightField]="group.path"
+                [attr.data-item-left-row]="group.path"
+                [attr.title]="group.movement">
                 <div class="table-row-label">{{ group.leftPath ?? 'Not present' }}</div>
                 @for (column of itemColumns; track column) {
                   <div
@@ -258,7 +261,6 @@
                   </div>
                 }
                 <div class="table-status">{{ group.summary }}</div>
-                <div class="table-move">{{ group.movement }}</div>
               </div>
             }
           </div>
@@ -275,11 +277,14 @@
                 <div>{{ column }}</div>
               }
               <div>Status</div>
-              <div>Move</div>
             </div>
 
             @for (group of itemGroups(); track group.path) {
-              <div class="diff-table table-row" [diffHighlightField]="group.path" [attr.data-item-right-row]="group.path">
+              <div
+                class="diff-table table-row"
+                [diffHighlightField]="group.path"
+                [attr.data-item-right-row]="group.path"
+                [attr.title]="group.movement">
                 <div class="table-row-label">{{ group.rightPath ?? 'Not present' }}</div>
                 @for (column of itemColumns; track column) {
                   <div
@@ -292,7 +297,6 @@
                   </div>
                 }
                 <div class="table-status">{{ group.summary }}</div>
-                <div class="table-move">{{ group.movement }}</div>
               </div>
             }
           </div>

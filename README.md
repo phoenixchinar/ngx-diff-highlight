@@ -3,7 +3,7 @@
 Angular library for resolving canonical diff field paths, scoping those paths to a subtree, and applying deterministic highlight behavior for both editable and read-only UIs.
 
 [![Build Status](https://github.com/phoenixchinar/ngx-diff-highlight/actions/workflows/ci.yml/badge.svg)](https://github.com/phoenixchinar/ngx-diff-highlight/actions)
-![Code Coverage](https://img.shields.io/badge/coverage-89%25-yellowgreen)
+[![Code Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fphoenixchinar.github.io%2Fngx-diff-highlight%2Fcoverage-badge.json)](https://phoenixchinar.github.io/ngx-diff-highlight/coverage-badge.json)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Features

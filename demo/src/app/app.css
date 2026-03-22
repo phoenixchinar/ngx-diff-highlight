@@ -213,7 +213,7 @@ h1 {
 
 .diff-table {
   display: grid;
-  grid-template-columns: minmax(88px, 1fr) repeat(3, minmax(0, 1fr)) minmax(88px, 0.9fr) minmax(120px, 1.2fr);
+  grid-template-columns: minmax(88px, 1fr) repeat(3, minmax(0, 1fr)) minmax(88px, 0.9fr);
 }
 
 .table-head {
@@ -245,8 +245,7 @@ h1 {
 }
 
 .table-row-label,
-.table-status,
-.table-move {
+.table-status {
   font-weight: 700;
   color: #334155;
 }

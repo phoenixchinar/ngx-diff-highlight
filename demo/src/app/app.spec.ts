@@ -89,8 +89,9 @@ describe('App', () => {
     expect(compiled.textContent).toContain('Previous Items');
     expect(compiled.textContent).toContain('Current Items');
     expect(compiled.textContent).toContain('enabled');
-    expect(compiled.textContent).toContain('Moved from items[1]');
-    expect(compiled.textContent).toContain('Moved from items[0]');
+    expect(compiled.textContent).not.toContain('Move');
+    expect(compiled.querySelector('[data-item-left-row="items[0]"]')?.getAttribute('title')).toContain('Moved from items[1]');
+    expect(compiled.querySelector('[data-item-right-row="items[1]"]')?.getAttribute('title')).toContain('Moved from items[0]');
     expect(compiled.querySelector('[data-item-left="items[0].id"]')?.textContent).toContain('2');
     expect(compiled.querySelector('[data-item-left="items[0].name"]')?.textContent).toContain('Beta');
     expect(compiled.querySelector('[data-item-left-row="items[0]"] .table-row-label')?.textContent).toContain('items[1]');
